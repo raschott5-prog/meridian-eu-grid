@@ -142,9 +142,9 @@ check("HTML enthält Live-Endpoint-Injektion", 'GRID_LIVE_ENDPOINT="/api/grid"' 
 check("HTML enthält Live-Loader", "async function loadLive" in html)
 check("HTML enthält Datenqualitäts-Anzeige", 'id="dqrow"' in html)
 
-r = c.get("/api/grid/refresh")
-check("/api/grid/refresh funktioniert", r.status_code == 200,
-      f"{len(r.get_json()['refreshed'])} Zonen aktualisiert")
+r = c.post("/api/grid/refresh")
+check("/api/grid/refresh (POST) works", r.status_code == 200,
+      f"{len(r.get_json()['refreshed'])} zones updated")
 
 print("\n" + "=" * 66)
 if FAILS:
