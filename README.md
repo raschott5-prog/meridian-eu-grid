@@ -43,12 +43,15 @@ flow, ML-based forecasting).
 - **Real physics, not a toy**: zonal DC load flow solved via B-matrix / Gaussian elimination; distributed slack per synchronous island; Kirchhoff-correct AC redistribution; HVDC as fixed injections
 - **Live ENTSO-E data**: automatic 30-minute snapshots via GitHub Actions; time-alignment across zones with up to 240-minute carry-forward for slow-reporting TSOs; MW-weighted completeness check guards against phantom deficits
 - **A11 calibration**: susceptance fitting, HVDC pinning, empirical NTC correction — full fit report at `/api/grid/calibration`
+- **Dynamic Line Rating (DLR)**: weather-based NTC scaling — temperature, wind speed, and solar irradiance determine actual line capacity via a simplified IEEE 738 thermal model; five presets from Heatwave (×0.44) to Storm (×1.74)
+- **Cascade simulation**: iterative protection relay model — overloaded lines trip, load redistributes, new overloads appear; shows how a single contingency becomes a blackout sequence
+- **Battery storage**: per-zone virtual battery with manual P setpoint or automatic frequency-support droop (5% droop, full power at ±200 mHz); SoC hard limits; time-to-empty/full display
 - **Browser-native solver**: the JavaScript solver in `meridian_grid_viz.html` is numerically identical to the Python engine, enabling offline use via GitHub Pages
 - **AI learning mode**: post-intervention explanation at beginner / advanced level; multi-provider (Anthropic / OpenAI / Google); key stored locally in the browser
 - **N-1 stress test**: all 83 connections tested individually on the live-calibrated state; islanding and overload detected
 - **Frequency simulation**: quasi-stationary Δf = −ΔP/λ per synchronous island, with real protection thresholds (FCR, UFLS, generator protection)
-- **Bilingual UI**: English default, full German translation, preference saved in `localStorage`
-- **Four test suites**: XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction
+- **Bilingual UI**: English default, full German translation, preference saved in `localStorage`; Freeze button pauses live data during teaching
+- **Five test suites**: XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage (37 assertions)
 
 ---
 
@@ -165,14 +168,15 @@ Full fit report: `GET /api/grid/calibration`
 
 | File | Purpose |
 |---|---|
-| `meridian_grid.py` | Physics core: topology, DC load flow, scenario engine |
+| `meridian_grid.py` | Physics core: topology, DC load flow, battery storage, scenario engine |
 | `meridian_grid_live.py` | ENTSO-E pipeline + Flask endpoints + A11 calibration |
 | `snapshot.py` | Static GitHub Pages bundle (called by Actions cron) |
-| `meridian_grid_viz.html` | Interactive map + AI learning mode (runs standalone) |
+| `meridian_grid_viz.html` | Interactive map + AI learning mode + DLR + cascade (runs standalone) |
 | `test_grid_live.py` | Unit tests: XML parsing, pumped storage, time alignment |
 | `test_e2e.py` | End-to-end with mocked ENTSO-E API |
 | `test_realdata_regression.py` | Reproduces observed ENTSO-E data edge cases |
 | `test_calibration.py` | A11 calibration reconstructs a known ground truth |
+| `test_battery.py` | Battery storage: SoC limits, droop response, island-local effect (37 assertions) |
 
 ---
 
@@ -202,9 +206,10 @@ python3 test_grid_live.py            # parsing, state, endpoints
 python3 test_e2e.py                  # full pipeline, mocked API
 python3 test_realdata_regression.py  # real-data edge cases
 python3 test_calibration.py          # calibration ground truth
+python3 test_battery.py              # battery storage: 37 assertions
 ```
 
-All suites run without network access. CI runs all four on every push.
+All suites run without network access. CI runs all five on every push.
 
 ---
 
@@ -218,7 +223,9 @@ All suites run without network access. CI runs all four on every push.
 | Iberian Split | Peninsula islanding; frequency divergence |
 | Dark Doldrums | Wind/solar drought + demand surge across NW Europe |
 | Baltic Islanding | Synchronous area separation; island frequency |
-| **⚡ Transit: FR↓ + DE Wind↑** | **Unscheduled loop flow**: power transits *through* France toward Spain even as France becomes a net importer. Voltage angle gradient θ_DE >> θ_FR > θ_ES — Kirchhoff follows the gradient, not trading intent. Replicates the structural conditions documented in ENTSO-E system adequacy reports and the April 2025 Iberian event. |
+| **⚡ Transit: FR↓ + DE Wind↑** | **Unscheduled loop flow**: power transits *through* France toward Spain even as France becomes a net importer. Voltage angle gradient θ_DE >> θ_FR > θ_ES drives the FR→ES flow against trading intent. |
+| **🌡 Weather / DLR** | Heatwave (×0.44 NTC) vs Storm (×1.74 NTC) — same grid, same generation, radically different line capacities. Simplified IEEE 738 thermal model: convective cooling, solar heating, rated conductor temperature 80°C. |
+| **⚡ Cascade Simulation** | Set Heatwave, press Cascade — watch lines trip in sequence as reduced thermal capacity turns marginal overloads into a blackout chain. Replicates the protection relay cascade mechanism behind the April 2025 Iberian event. |
 
 ---
 
@@ -231,6 +238,8 @@ All suites run without network access. CI runs all four on every push.
 | **A75 reporting threshold** | Only plants above ~100 MW are reported. Distributed PV and small-scale generation are systematically underrepresented. |
 | **Open balance** | Flows to/from GB (post-Brexit), Ukraine, Morocco, and non-modelled Balkan neighbours are not closed. The residual is reported as `external_balance_mw` and absorbed by the distributed slack — never silently discarded. |
 | **Static snapshot** | Single operating point, not a dynamic simulation. Transient stability, voltage control, and relay behaviour are outside scope. |
+| **DLR is spatially uniform** | The weather overlay applies a single factor to all AC lines. Real DLR is line-specific; terrain, altitude, and local meteorology vary significantly across a 3,000 km network. |
+| **Cascade is deterministic** | All overloaded lines trip simultaneously at each step. Real protection relays have time-distance characteristics; trip sequence depends on relay settings, not just overload magnitude. |
 | **API throttling** | ~250 requests per refresh approaches the ENTSO-E rate limit. Retry with backoff, shuffled fetch order, and persistent calibration state mitigate this; degraded data quality is flagged in the UI. |
 
 ---
