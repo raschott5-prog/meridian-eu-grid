@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MERIDIAN Grid — EU Power Grid Simulator</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#0f1620; --panel2:#0c1219;
+    --border:#1a2636; --border2:#223449;
+    --text:#c8d4e0; --dim:#63748a; --dim2:#455568;
+    --ok:#3ddc84; --warn:#ffb020; --bad:#ff4d4d; --cyan:#35c9d0;
+    --dc:#b48cff;
+    --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--mono);
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:14px}
+  header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--border2);padding-bottom:10px;margin-bottom:12px}
+  header h1{font-size:15px;font-weight:600;letter-spacing:2px}
+  header .tag{font-size:10px;color:var(--dim);letter-spacing:1px}
+  header .live{font-size:10px;color:var(--cyan);
+    display:flex;align-items:center;gap:6px}
+  header .live::before{content:"";width:6px;height:6px;border-radius:50%;
+    background:var(--cyan);box-shadow:0 0 6px var(--cyan);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  .live.err::before{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+  .live.err{color:var(--bad)}
+  .live.warn::before{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+  .live.warn{color:var(--warn)}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .lang-btn{font-family:var(--mono);font-size:9px;letter-spacing:1px;padding:3px 7px;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .lang-btn.active{border-color:var(--cyan);color:var(--cyan)}
+  .lang-btn:hover{border-color:var(--text);color:var(--text)}
+  .ai-btn{font-family:var(--mono);font-size:9px;letter-spacing:.5px;padding:3px 9px;
+    border:1px solid var(--dc);border-radius:2px;background:var(--panel2);
+    color:var(--dc);cursor:pointer;transition:.12s}
+  .ai-btn:hover{background:rgba(180,140,255,.12)}
+  .freeze-btn{font-family:var(--mono);font-size:9px;letter-spacing:.5px;padding:3px 9px;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .freeze-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+  .freeze-btn.frozen{border-color:#5bb8ff;color:#5bb8ff;background:rgba(91,184,255,.08)}
+
+  .layout{display:flex;gap:12px;align-items:flex-start}
+  .mapcol{flex:1 1 620px;min-width:0}
+  .side{flex:0 0 318px;display:flex;flex-direction:column;gap:10px}
+  @media(max-width:900px){.layout{flex-direction:column}.side{flex-basis:auto;width:100%}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:3px}
+  .card h2{font-size:10px;letter-spacing:1.5px;color:var(--dim);font-weight:600;
+    padding:8px 11px;border-bottom:1px solid var(--border);text-transform:uppercase}
+
+  svg{display:block;width:100%;height:auto;background:
+    radial-gradient(ellipse at 42% 45%,#0d141d 0%,#080b11 100%)}
+  .edge-base{stroke:#1d2b3d;stroke-width:1.2;fill:none}
+  .edge-base.dc{stroke:#2a2440}
+  .edge-flow{fill:none;stroke-linecap:round}
+  .edge-hit{stroke:transparent;stroke-width:12;fill:none;cursor:pointer}
+  .node circle{cursor:pointer;transition:stroke-width .12s}
+  .node text{pointer-events:none;font-family:var(--mono)}
+  .node .code{font-size:9.5px;font-weight:600;fill:var(--text)}
+  .node .val{font-size:7px;fill:var(--dim)}
+  .node.sel circle{stroke:var(--cyan)!important;stroke-width:2.5}
+
+  .status{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+    background:var(--border);border:1px solid var(--border);border-radius:3px;
+    overflow:hidden;margin-top:10px}
+  .status div{background:var(--panel2);padding:8px 10px}
+  .status .k{font-size:8.5px;color:var(--dim);letter-spacing:1px}
+  .status .v{font-size:16px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+
+  .dq{margin-top:10px}
+  .dqrow{display:flex;flex-wrap:wrap;gap:8px;padding:8px 11px;font-size:9px;
+    color:var(--dim);align-items:center}
+  .dqrow .z{font-variant-numeric:tabular-nums}
+  .dqrow .sep{color:var(--border2)}
+
+  .hint{font-size:10.5px;color:var(--dim);padding:9px 11px;line-height:1.5}
+  .hint b{color:var(--text);font-weight:600}
+  .hint .dcw{color:var(--dc)}
+
+  .ctl{padding:10px 11px 12px}
+  .ctl .selname{font-size:13px;font-weight:600;letter-spacing:1px;margin-bottom:2px}
+  .ctl .selsub{font-size:10px;color:var(--dim);margin-bottom:10px;line-height:1.5}
+  .empty{color:var(--dim2);font-size:11px;padding:16px 11px;text-align:center;line-height:1.5}
+
+  .slrow{margin-bottom:9px}
+  .slrow .lab{display:flex;justify-content:space-between;font-size:10px;
+    margin-bottom:3px;color:var(--dim)}
+  .slrow .lab .amt{color:var(--text);font-variant-numeric:tabular-nums}
+  .slrow .lab .amt.up{color:var(--ok)} .slrow .lab .amt.dn{color:var(--bad)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;
+    background:var(--border2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+    border-radius:50%;background:var(--text);cursor:pointer;border:2px solid var(--panel)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+    background:var(--text);cursor:pointer;border:2px solid var(--panel)}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  .btnrow{display:flex;flex-wrap:wrap;gap:5px;padding:9px 11px}
+  button{font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--text);
+    background:var(--panel2);border:1px solid var(--border2);border-radius:3px;
+    padding:6px 8px;cursor:pointer;transition:.12s;flex:1 1 auto}
+  button:hover{border-color:var(--cyan);color:var(--cyan)}
+  button.reset{color:var(--dim)}button.reset:hover{border-color:var(--bad);color:var(--bad)}
+
+  .flowlist{max-height:170px;overflow-y:auto;font-size:10px}
+  .flowlist .fr{display:flex;justify-content:space-between;padding:4px 11px;
+    border-bottom:1px solid var(--panel2)}
+  .flowlist .fr .rt{color:var(--dim);font-variant-numeric:tabular-nums}
+  .flowlist::-webkit-scrollbar{width:6px}
+  .flowlist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  .dctag{color:var(--dc);font-size:8.5px;letter-spacing:.5px}
+
+  .colorkey{display:flex;gap:11px;font-size:9px;color:var(--dim);padding:7px 11px;flex-wrap:wrap}
+  .freqgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--border)}
+  .freqchip{background:var(--panel2);padding:8px 10px}
+  .freqchip .fk{font-size:8px;color:var(--dim);letter-spacing:1px}
+  .freqchip .fv{font-size:17px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .freqchip .fs{font-size:8.5px;margin-top:1px}
+  .mixbar{display:flex;height:16px;margin:9px 11px 4px;border-radius:2px;overflow:hidden;
+    border:1px solid var(--border2)}
+  .mixbar div{min-width:1px}
+
+  /* ── AI Learning Panel ── */
+  .ai-level-row{display:flex;gap:5px;padding:8px 11px 4px;align-items:center}
+  .ai-level-btn{font-family:var(--mono);font-size:9px;padding:3px 8px;flex:none;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .ai-level-btn.active{border-color:var(--dc);color:var(--dc);background:rgba(180,140,255,.08)}
+  .ai-explain-btn{margin:0 11px 10px;padding:7px 12px;border:1px solid var(--dc);
+    color:var(--dc);background:rgba(180,140,255,.08);border-radius:3px;width:calc(100% - 22px);
+    font-size:10px;letter-spacing:.5px;cursor:pointer;font-family:var(--mono)}
+  .ai-explain-btn:hover{background:rgba(180,140,255,.18)}
+  .ai-explain-btn:disabled{opacity:.4;cursor:default}
+  .ai-output{padding:10px 11px;font-size:11px;color:var(--text);line-height:1.7;
+    border-top:1px solid var(--border);white-space:pre-wrap;max-height:340px;overflow-y:auto}
+  .ai-output .ai-loading{color:var(--dim);animation:pulse 1.4s infinite}
+  .ai-output p{margin-bottom:8px}
+  .ai-cfg-row{display:flex;gap:5px;padding:5px 11px 9px;flex-wrap:wrap;align-items:center;
+    font-size:9px;color:var(--dim2)}
+  .ai-cfg-row select{font-family:var(--mono);font-size:9px;background:var(--panel2);
+    border:1px solid var(--border2);color:var(--dim);border-radius:2px;padding:2px 4px}
+  .ai-cfg-row a{color:var(--dim);cursor:pointer;text-decoration:underline}
+
+  /* ── Modal ── */
+  /* ── Battery Storage UI ── */
+  .bat-panel{padding:10px 11px 12px;border-top:1px solid var(--border)}
+  .bat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .bat-head .k{font-size:9px;letter-spacing:1.5px;color:var(--ok);font-weight:600}
+  .bat-soc-wrap{margin:4px 0 2px}
+  .bat-soc-track{height:5px;border-radius:3px;background:var(--border2);overflow:hidden}
+  .bat-soc-fill{height:100%;border-radius:3px;transition:width .25s,background .25s}
+  .bat-time{font-size:9px;color:var(--dim);min-height:13px;margin-bottom:7px;
+    font-variant-numeric:tabular-nums}
+  .bat-mode-row{display:flex;gap:4px;margin-bottom:9px}
+  .bat-mode-btn{font-family:var(--mono);font-size:9px;padding:3px 8px;flex:1;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .bat-mode-btn.active{border-color:var(--ok);color:var(--ok);
+    background:rgba(61,220,132,.08)}
+  .bat-freq-info{font-size:9px;color:var(--dim);padding:4px 0 6px;line-height:1.6}
+  .bat-add{margin:6px 11px 10px;padding:7px;border:1px dashed var(--border2);
+    border-radius:3px;width:calc(100% - 22px);font-size:10px;letter-spacing:.5px;
+    color:var(--dim2);background:transparent;cursor:pointer;font-family:var(--mono);
+    transition:.12s}
+  .bat-add:hover{border-color:var(--ok);color:var(--ok)}
+  .bat-remove{font-size:9px;color:var(--dim2);background:none;border:none;
+    cursor:pointer;padding:0;font-family:var(--mono);letter-spacing:.5px}
+  .bat-remove:hover{color:var(--bad)}
+  .bat-ratio{font-size:8.5px;color:var(--dim2);text-align:right;
+    margin:-5px 0 4px;font-variant-numeric:tabular-nums}
+  /* ── Dynamic Line Rating (DLR) Panel ── */
+  .dlr-factor{font-size:28px;font-weight:600;text-align:center;padding:8px 0 4px;
+    font-variant-numeric:tabular-nums;letter-spacing:-1px}
+  .dlr-factor.ok{color:var(--text)}
+  .dlr-factor.high{color:var(--ok)}
+  .dlr-factor.low{color:var(--warn)}
+  .dlr-factor.crit{color:var(--bad)}
+  .dlr-sub{font-size:9px;color:var(--dim);text-align:center;margin-bottom:10px;
+    letter-spacing:.5px}
+  .dlr-sliders{padding:4px 11px 8px}
+  .dlr-presets{display:flex;flex-wrap:wrap;gap:4px;padding:0 11px 10px}
+  .dlr-preset{font-family:var(--mono);font-size:9px;padding:3px 6px;flex:1 1 auto;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s;text-align:center}
+  .dlr-preset:hover{border-color:var(--text);color:var(--text)}
+  .dlr-preset.active{border-color:var(--cyan);color:var(--cyan);
+    background:rgba(53,201,208,.07)}
+  /* ── Cascade Simulation ── */
+  .cascade-step{padding:6px 11px;border-bottom:1px solid var(--panel2);font-size:10px}
+  .cascade-step .cs-head{display:flex;justify-content:space-between;margin-bottom:2px}
+  .cascade-step .cs-num{color:var(--dim);font-size:9px;letter-spacing:.5px}
+  .cascade-step .cs-trips{color:var(--bad);font-variant-numeric:tabular-nums}
+  .cascade-step .cs-detail{color:var(--dim);font-size:9px;line-height:1.5}
+  .cascade-step.stable .cs-trips{color:var(--ok)}
+  .cascade-step.island .cs-trips{color:var(--bad)}
+  .cascade-clear{margin:8px 11px;padding:5px;font-size:9px;letter-spacing:.5px;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim2);cursor:pointer;font-family:var(--mono);width:calc(100% - 22px)}
+  .cascade-clear:hover{border-color:var(--bad);color:var(--bad)}
+  .cascade-thresh{display:flex;align-items:center;gap:6px;padding:6px 11px 4px;
+    font-size:9px;color:var(--dim)}
+  .cascade-thresh select{font-family:var(--mono);font-size:9px;background:var(--panel2);
+    border:1px solid var(--border2);color:var(--text);border-radius:2px;padding:2px 4px}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);
+    z-index:1000;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border2);border-radius:4px;
+    padding:22px 24px;width:440px;max-width:92vw;max-height:88vh;overflow-y:auto}
+  .modal h3{font-size:12px;letter-spacing:1.5px;color:var(--cyan);margin-bottom:18px;
+    font-weight:600;text-transform:uppercase}
+  .modal .field{margin-bottom:14px}
+  .modal .field label{display:block;font-size:9px;color:var(--dim);letter-spacing:1px;
+    margin-bottom:4px;text-transform:uppercase}
+  .modal .field select,.modal .field input{width:100%;font-family:var(--mono);font-size:11px;
+    background:var(--panel2);border:1px solid var(--border2);color:var(--text);
+    border-radius:3px;padding:6px 9px;outline:none}
+  .modal .field input:focus,.modal .field select:focus{border-color:var(--cyan)}
+  .modal .field .hint{font-size:9.5px;color:var(--dim2);margin-top:4px;line-height:1.5}
+  .modal .field input[type=password]{letter-spacing:2px}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+  .modal-btns button{flex:none;padding:6px 16px;font-size:10px}
+  .modal-btns .save{border-color:var(--cyan);color:var(--cyan)}
+  .modal-btns .save:hover{background:rgba(53,201,208,.1)}
+  .provider-models{margin-top:6px;font-size:9px;color:var(--dim2);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MERIDIAN&nbsp;GRID</h1>
+    <span class="tag" id="hdr-tag">EU INTERCONNECTED GRID · 4 SYNC ZONES · DC POWER FLOW</span>
+    <div class="header-right">
+      <span class="live" id="livebadge">MODEL DEFAULTS</span>
+      <button class="freeze-btn" id="freeze-btn" onclick="toggleFreeze()">⏸ FREEZE</button>
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+      <button class="ai-btn" onclick="openAIModal()">⚙ AI MODE</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="mapcol">
+      <div class="card">
+        <svg id="map" viewBox="0 0 720 800" preserveAspectRatio="xMidYMid meet"
+             aria-label="Interactive EU power grid map"></svg>
+      </div>
+      <div class="status">
+        <div><div class="k" id="s-util-k">MAX. UTILISATION</div><div class="v" id="s-util">–</div></div>
+        <div><div class="k" id="s-over-k">OVERLOADS</div><div class="v" id="s-over">–</div></div>
+        <div><div class="k">LOOP FLOW INDEX</div><div class="v" id="s-loop">–</div></div>
+        <div><div class="k" id="s-dc-k">DC TRANSFER</div><div class="v" id="s-dc">–</div></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h2 id="h-freq">GRID FREQUENCY PER SYNC ZONE — SIMULATED</h2>
+        <div class="freqgrid" id="freqrow"></div>
+        <div class="hint" id="hint-freq">Quasi-stationary deviation after primary frequency
+        regulation: Δf = −ΔP/λ, per island. Beyond 49.0 Hz real load shedding would
+        activate — the model continues statically.</div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h2 id="h-mix">EU POWER MIX — RESPONDS TO YOUR INTERVENTIONS</h2>
+        <div class="mixbar" id="mixbar"></div>
+        <div class="flowlist" id="mixlegend" style="max-height:220px"></div>
+      </div>
+      <div class="card dq" id="dqcard" style="display:none">
+        <div class="dqrow" id="dqrow"></div>
+      </div>
+      <div class="card" id="deltacard" style="display:none;margin-top:10px">
+        <h2 id="h-delta">FLOW SHIFTS FROM YOUR INTERVENTIONS</h2>
+        <div class="flowlist" id="deltalist"></div>
+      </div>
+
+      <!-- AI Learning Panel -->
+      <div class="card" id="aicard" style="display:none;margin-top:10px">
+        <h2 id="h-ai">AI LEARNING MODE</h2>
+        <div class="ai-level-row">
+          <span style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-right:4px" id="ai-level-lbl">LEVEL:</span>
+          <button class="ai-level-btn active" id="ai-lvl-beg" onclick="setAILevel('beginner')" data-i18n-ai-lvl="beginner">BEGINNER</button>
+          <button class="ai-level-btn" id="ai-lvl-adv" onclick="setAILevel('advanced')" data-i18n-ai-lvl="advanced">ADVANCED</button>
+        </div>
+        <button class="ai-explain-btn" id="ai-explain-btn" onclick="explainIntervention()">
+          ▶ EXPLAIN THIS INTERVENTION
+        </button>
+        <div id="ai-output" class="ai-output" style="display:none"></div>
+        <div class="ai-cfg-row" id="ai-cfg-row">
+          <span id="ai-cfg-label">Provider/Model: </span>
+          <span id="ai-cfg-info" style="color:var(--dim)">not configured</span>
+          <span style="color:var(--border2)">·</span>
+          <a onclick="openAIModal()" id="ai-cfg-link">settings</a>
+        </div>
+      </div>
+
+      <!-- Cascade Simulation Panel -->
+      <div class="card" id="cascadecard" style="display:none;margin-top:10px">
+        <h2 id="h-cascade">CASCADE SIMULATION</h2>
+        <div class="flowlist" id="cascadelist" style="max-height:300px"></div>
+        <button class="cascade-clear" id="cascade-clear-btn" onclick="clearCascade()">■ CLEAR CASCADE</button>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <h2 id="h-top">MOST LOADED CONNECTIONS</h2>
+        <div class="flowlist" id="flowlist"></div>
+        <div class="colorkey">
+          <span><span class="dot" style="background:var(--ok)"></span><span data-i18n="ck_low">&lt;60% NTC</span></span>
+          <span><span class="dot" style="background:var(--warn)"></span>60–100%</span>
+          <span><span class="dot" style="background:var(--bad)"></span><span data-i18n="ck_over">&gt;100%</span></span>
+          <span><span class="dot" style="background:var(--dc)"></span><span data-i18n="ck_dc">HVDC (scheduled)</span></span>
+          <span style="color:var(--dim2)" data-i18n="ck_def">dashed border = model default</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2 id="h-dlr">WEATHER / DLR</h2>
+        <div class="dlr-factor ok" id="dlr-factor-disp">×1.00</div>
+        <div class="dlr-sub" id="dlr-sub">AC line capacity at reference conditions</div>
+        <div class="dlr-sliders" id="dlr-sliders"></div>
+        <div class="dlr-presets" id="dlr-presets"></div>
+      </div>
+
+      <div class="card">
+        <h2 id="h-scen">SCENARIOS</h2>
+        <div class="btnrow" id="scen-btns"></div>
+        <div class="btnrow" style="padding-top:0" id="scen-btns2"></div>
+      </div>
+
+      <div class="card" id="n1card" style="display:none">
+        <h2 id="n1head">N-1 STRESS TEST</h2>
+        <div class="flowlist" id="n1list" style="max-height:230px"></div>
+        <div class="hint" id="hint-n1">Computes on the current state — including
+        your shocks and A11 calibration. Click an entry to apply the outage.</div>
+      </div>
+
+      <div class="card">
+        <h2 id="ctlhead">CONTROLS</h2>
+        <div id="ctl"></div>
+      </div>
+
+      <div class="card">
+        <div class="hint" id="hint-main">
+          <b data-i18n="hint_node">Click a node</b> → shift generation / load.<br>
+          <b data-i18n="hint_ac">Click an AC line</b> → throttle or cut capacity.
+          Flow follows Kirchhoff — no one controls it.<br>
+          <b class="dcw" data-i18n="hint_dc">Click an HVDC cable</b> → set the
+          scheduled flow directly. This is the "wire with a switch": what's set
+          is what flows — schedule over physics.
+          <div style="margin-top:7px;color:var(--dim2);font-size:9px" data-i18n="hint_src">
+          Data: ENTSO-E Transparency Platform · Model: zonal DC load flow,
+          A11-calibrated · not operational data</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Settings Modal -->
+<div class="modal-overlay" id="ai-modal">
+  <div class="modal">
+    <h3 id="modal-title">AI LEARNING MODE — SETTINGS</h3>
+    <div class="field">
+      <label id="lbl-provider">AI PROVIDER</label>
+      <select id="ai-provider" onchange="onProviderChange()">
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI (GPT)</option>
+        <option value="google">Google (Gemini)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="lbl-model">MODEL</label>
+      <select id="ai-model"></select>
+      <div class="provider-models" id="model-hint"></div>
+    </div>
+    <div class="field">
+      <label id="lbl-key">API KEY</label>
+      <input type="password" id="ai-key" placeholder="paste your key here" autocomplete="off">
+      <div class="hint" id="lbl-key-hint">Key is stored in your browser only (localStorage).
+      Never sent to any server except the provider's API endpoint.</div>
+    </div>
+    <div class="modal-btns">
+      <button onclick="closeAIModal()" id="btn-cancel">CANCEL</button>
+      <button class="save" onclick="saveAISettings()" id="btn-save">SAVE & CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════
+   MERIDIAN GRID v2 — EU Interconnected Grid (JS port of meridian_grid.py)
+   4 synchronous zones, AC follows Kirchhoff, DC follows schedule.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── i18n ── */
+let CUR_LANG = 'en';
+const STRINGS = {
+  en: {
+    header_tag:   "EU INTERCONNECTED GRID · 4 SYNC ZONES · DC POWER FLOW",
+    h_freq:       "GRID FREQUENCY PER SYNC ZONE — SIMULATED",
+    hint_freq:    "Quasi-stationary deviation after primary frequency regulation: Δf = −ΔP/λ, per island. Beyond 49.0 Hz real load shedding would activate — the model continues statically.",
+    h_mix:        "EU POWER MIX — RESPONDS TO YOUR INTERVENTIONS",
+    h_delta:      "FLOW SHIFTS FROM YOUR INTERVENTIONS",
+    h_top:        "MOST LOADED CONNECTIONS",
+    h_scen:       "SCENARIOS",
+    h_ai:         "AI LEARNING MODE",
+    h_ctl:        "CONTROLS",
+    hint_node:    "Click a node",
+    hint_ac:      "Click an AC line",
+    hint_dc:      "Click an HVDC cable",
+    hint_src:     "Data: ENTSO-E Transparency Platform · Model: zonal DC load flow, A11-calibrated · not operational data",
+    hint_n1:      "Computes on the current state — including your shocks and A11 calibration. Click an entry to apply the outage.",
+    hint_main:    '→ shift generation / load.<br><b>Click an AC line</b> → throttle or cut capacity. Flow follows Kirchhoff — no one controls it.<br><b class="dcw">Click an HVDC cable</b> → set the scheduled flow directly. This is the "wire with a switch": what\'s set is what flows — schedule over physics.',
+    ck_low:       "<60% NTC",
+    ck_over:      ">100%",
+    ck_dc:        "HVDC (scheduled)",
+    ck_def:       "dashed border = model default",
+    live_def:     "MODEL DEFAULTS",
+    live_cal:     "A11-CALIBRATED",
+    live_live:    "ENTSO-E LIVE",
+    live_fail:    "LIVE UNAVAILABLE — MODEL DEFAULTS",
+    dq_ok:        "reliable",
+    dq_partial:   "partial",
+    dq_poor:      "poor",
+    dq_data:      "DATA QUALITY:",
+    dq_snap:      "Grid snapshot",
+    dq_bal:       "open balance",
+    dq_cal:       "boundaries · fitted · avg error",
+    dq_ntc:       "NTC raised",
+    dq_unmeas:    "unmeasured",
+    dq_unpin:     "unpinned:",
+    s_util:       "MAX. UTILISATION",
+    s_over:       "OVERLOADS",
+    s_dc:         "DC TRANSFER",
+    s_split:      "GRID SPLIT",
+    s_islands:    "ISLANDS",
+    sync_ce:      "CONTINENTAL EUROPE",
+    sync_n:       "NORDIC",
+    sync_gb:      "GREAT BRITAIN",
+    sync_ie:      "IRELAND",
+    island:       "ISLAND",
+    freq_collapse:"COLLAPSE — Generator protection (≥51.5 Hz)",
+    freq_hiemerg: "OVER-FREQUENCY — PV disconnections (≥50.2 Hz)",
+    freq_hi:      "ELEVATED",
+    freq_normal:  "NORMAL",
+    freq_lo:      "REDUCED",
+    freq_fcr:     "CRITICAL — FCR limit (≤49.8 Hz)",
+    freq_ufls:    "LOAD SHEDDING — UFLS (≤49.0 Hz)",
+    freq_sys:     "SYSTEM COLLAPSE (≤47.5 Hz)",
+    mix_unmod:    "unaccounted (small plants/external)",
+    mix_sum:      "Σ Generation / Σ Load",
+    delta_none:   "No significant redistribution (<80 MW per line)",
+    delta_cut:    "cut",
+    n1_safe:      "N-1 STRESS TEST: GRID IS N-1-SECURE",
+    n1_crit:      "N-1 STRESS TEST:",
+    n1_of:        "of",
+    n1_crit2:     "contingencies critical",
+    n1_island:    "ISLANDING",
+    n1_overload:  "Overload",
+    n1_util:      "Utilisation →",
+    n1_ok:        "non-critical",
+    ctl_head:     "CONTROLS",
+    ctl_zone:     "Zone",
+    ctl_sync:     "Sync zone",
+    ctl_sched:    "Schedule",
+    ctl_phys:     "physical",
+    ctl_reg:      "Reg. contribution",
+    ctl_load:     "Load",
+    ctl_dc_tag:   "HVDC — schedule over physics",
+    ctl_sp:       "Setpoint",
+    ctl_lim:      "Limit",
+    ctl_dc_zero:  "SET TO ZERO",
+    ctl_dc_fwd:   "FULL",
+    ctl_dc_rev:   "FULL",
+    ctl_ac_tag:   "AC — flow follows Kirchhoff",
+    ctl_cur:      "currently",
+    ctl_throt:    "throttled, full",
+    ctl_cap:      "Available capacity",
+    ctl_cut:      "CUT LINE",
+    ctl_restore:  "RESTORE",
+    ctl_empty:    'Click a <b style="color:var(--text)">zone</b>, an <b style="color:var(--text)">AC line</b> or an <b style="color:var(--dc)">HVDC cable</b> on the map.',
+    ctl_delta:    "Δ vs. unperturbed grid",
+    scen_fr:      "FR −20 GW Nuclear",
+    scen_wind:    "DE +30 GW Wind",
+    scen_nord:    "NordLink + NSL Off",
+    scen_iberia:  "Iberian Split",
+    scen_dark:    "Dark Doldrums",
+    scen_balt:    "Baltic Islanding",
+    scen_transit: "⚡ Transit: FR↓ + DE Wind↑",
+    scen_n1:      "▶ N-1 STRESS TEST",
+    scen_reset:   "■ RESET ALL",
+    ai_level:     "LEVEL:",
+    ai_beg:       "BEGINNER",
+    ai_adv:       "ADVANCED",
+    ai_explain:   "▶ EXPLAIN THIS INTERVENTION",
+    ai_loading:   "Analysing power flow…",
+    ai_cfg:       "Provider/Model:",
+    ai_cfg_none:  "not configured",
+    ai_cfg_link:  "settings",
+    freeze_off:   "⏸ FREEZE",
+    freeze_on:    "❄ FROZEN",
+    freeze_tip_off: "Pause live data refresh — useful during teaching or presentations",
+    freeze_tip_on:  "Live data refresh is paused. Click to resume.",
+    bat_add:      "+ ADD BATTERY STORAGE",
+    dlr_head:     "WEATHER / DLR",
+    dlr_sub_ref:  "AC line capacity at reference conditions",
+    dlr_sub:      "AC line capacity vs. reference",
+    dlr_temp:     "Ambient Temp.",
+    dlr_wind:     "Wind Speed",
+    dlr_solar:    "Solar Radiation",
+    dlr_heatwave: "🌡 Heatwave",
+    dlr_summer:   "☀ Summer",
+    dlr_standard: "◎ Standard",
+    dlr_winter:   "❄ Winter",
+    dlr_storm:    "⛈ Storm",
+    cas_head:     "CASCADE SIMULATION",
+    cas_btn:      "⚡ CASCADE",
+    cas_thresh:   "Trip threshold:",
+    cas_stable:   "STABLE — no further trips",
+    cas_island:   "GRID SPLIT",
+    cas_maxstep:  "MAX STEPS REACHED",
+    cas_step:     "Step",
+    cas_tripped:  "tripped",
+    cas_util:     "util",
+    cas_islands:  "islands",
+    cas_clear:    "■ CLEAR CASCADE",
+    cas_summary_stable: "lines tripped · grid stable",
+    cas_summary_split:  "lines tripped · GRID SPLIT",
+    bat_remove:   "✕ remove",
+    bat_head:     "BATTERY STORAGE",
+    bat_cap:      "Capacity",
+    bat_pmax:     "Max Power",
+    bat_soc:      "State of Charge",
+    bat_pset:     "P Setpoint",
+    bat_mode_manual: "MANUAL P",
+    bat_mode_freq:   "FREQ SUPPORT",
+    bat_standby:  "standby",
+    bat_empty:    "to empty",
+    bat_full:     "to full",
+    bat_crit:     "⚠ near empty",
+    bat_droop:    "5% droop · full power at ±200 mHz",
+    bat_cur_p:    "Current P:",
+    bat_sign:     "+ discharge · − charge",
+    modal_title:  "AI LEARNING MODE — SETTINGS",
+    lbl_provider: "AI PROVIDER",
+    lbl_model:    "MODEL",
+    lbl_key:      "API KEY",
+    lbl_key_hint: "Key is stored in your browser only (localStorage). Never sent anywhere except the provider's API endpoint.",
+    btn_cancel:   "CANCEL",
+    btn_save:     "SAVE & CLOSE",
+  },
+  de: {
+    header_tag:   "EU-VERBUNDNETZ · 4 SYNCHRONZONEN · DC-LASTFLUSS",
+    h_freq:       "NETZFREQUENZ JE SYNCHRONZONE — SIMULIERT",
+    hint_freq:    "Quasistationäre Abweichung nach Primärregelung: Δf = −ΔP/λ, je Insel. Jenseits 49,0 Hz würde real Lastabwurf greifen — das Modell rechnet statisch weiter.",
+    h_mix:        "EU-STROMMIX — REAGIERT AUF DEINE EINGRIFFE",
+    h_delta:      "FLUSSVERSCHIEBUNGEN DURCH DEINE EINGRIFFE",
+    h_top:        "HÖCHSTBELASTETE VERBINDUNGEN",
+    h_scen:       "SZENARIEN",
+    h_ai:         "KI-LERNMODUS",
+    h_ctl:        "MANIPULATION",
+    hint_node:    "Knoten anklicken",
+    hint_ac:      "AC-Leitung anklicken",
+    hint_dc:      "HVDC-Kabel anklicken",
+    hint_src:     "Datenquelle: ENTSO-E Transparency Platform · Modell: zonaler DC-Lastfluss, A11-kalibriert · keine Betriebsführungs-Daten",
+    hint_n1:      "Rechnet auf dem aktuellen Zustand — inkl. deiner Schocks und der A11-Kalibrierung. Klick auf einen Eintrag wendet den Ausfall an.",
+    ck_low:       "<60% NTC",
+    ck_over:      ">100%",
+    ck_dc:        "HVDC (Fahrplan)",
+    ck_def:       "gestrichelter Rand = Modell-Default",
+    live_def:     "MODELL-DEFAULTS",
+    live_cal:     "A11-KALIBRIERT",
+    live_live:    "ENTSO-E LIVE",
+    live_fail:    "LIVE NICHT ERREICHBAR — MODELL-DEFAULTS",
+    dq_ok:        "belastbar",
+    dq_partial:   "eingeschränkt",
+    dq_poor:      "unzureichend",
+    dq_data:      "DATENLAGE:",
+    dq_snap:      "Netzschnitt",
+    dq_bal:       "offene Bilanz",
+    dq_cal:       "Grenzen · gefittet · Ø-Fehler",
+    dq_ntc:       "NTC angehoben",
+    dq_unmeas:    "ohne Messung",
+    dq_unpin:     "ungepinnt:",
+    s_util:       "MAX. AUSLASTUNG",
+    s_over:       "ÜBERLASTUNGEN",
+    s_dc:         "DC-TRANSFER",
+    s_split:      "NETZ AUFGETRENNT",
+    s_islands:    "INSELN",
+    sync_ce:      "KONTINENTALEUROPA",
+    sync_n:       "NORDIC",
+    sync_gb:      "GROSSBRITANNIEN",
+    sync_ie:      "IRLAND",
+    island:       "INSEL",
+    freq_collapse:"KOLLAPS – Erzeugerschutz (≥51,5 Hz)",
+    freq_hiemerg: "ÜBERFREQUENZ – PV-Abschaltungen (≥50,2 Hz)",
+    freq_hi:      "ERHÖHT",
+    freq_normal:  "NORMAL",
+    freq_lo:      "ABGESENKT",
+    freq_fcr:     "KRITISCH – FCR-Grenze (≤49,8 Hz)",
+    freq_ufls:    "LASTABWURF – UFLS (≤49,0 Hz)",
+    freq_sys:     "SYSTEMKOLLAPS (≤47,5 Hz)",
+    mix_unmod:    "nicht erfasst (Kleinanlagen/Extern)",
+    mix_sum:      "Σ Erzeugung / Σ Last",
+    delta_none:   "Keine nennenswerte Umverteilung (<80 MW je Kante)",
+    delta_cut:    "getrennt",
+    n1_safe:      "N-1-STRESSTEST: NETZ IST N-1-SICHER",
+    n1_crit:      "N-1-STRESSTEST:",
+    n1_of:        "von",
+    n1_crit2:     "Ausfällen kritisch",
+    n1_island:    "INSELBILDUNG",
+    n1_overload:  "Overload",
+    n1_util:      "Auslastung →",
+    n1_ok:        "unkritisch",
+    ctl_head:     "MANIPULATION",
+    ctl_zone:     "Zone",
+    ctl_sync:     "Synchronzone",
+    ctl_sched:    "Fahrplan",
+    ctl_phys:     "physisch",
+    ctl_reg:      "Regelbeitrag",
+    ctl_load:     "Last",
+    ctl_dc_tag:   "HVDC — Fahrplan statt Physik",
+    ctl_sp:       "Sollwert",
+    ctl_lim:      "Limit",
+    ctl_dc_zero:  "KABEL AUF 0",
+    ctl_dc_fwd:   "VOLL",
+    ctl_dc_rev:   "VOLL",
+    ctl_ac_tag:   "AC — Fluss folgt Kirchhoff",
+    ctl_cur:      "aktuell",
+    ctl_throt:    "gedrosselt, voll",
+    ctl_cap:      "Verfügbare Kapazität",
+    ctl_cut:      "LEITUNG KAPPEN",
+    ctl_restore:  "WIEDERHERSTELLEN",
+    ctl_empty:    'Klicke eine <b style="color:var(--text)">Zone</b>, eine <b style="color:var(--text)">AC-Leitung</b> oder ein <b style="color:var(--dc)">HVDC-Kabel</b> auf der Karte.',
+    ctl_delta:    "Δ zum ungestörten Netz",
+    scen_fr:      "FR −20 GW AKW",
+    scen_wind:    "DE +30 GW Wind",
+    scen_nord:    "NordLink + NSL aus",
+    scen_iberia:  "Iberien-Split",
+    scen_dark:    "Dunkelflaute",
+    scen_balt:    "Baltikum-Inselung",
+    scen_transit: "⚡ Transit: FR↓ + DE Wind↑",
+    scen_n1:      "▶ N-1 STRESSTEST",
+    scen_reset:   "■ ALLES ZURÜCKSETZEN",
+    ai_level:     "LEVEL:",
+    ai_beg:       "ANFÄNGER",
+    ai_adv:       "FORTGESCHRITTEN",
+    ai_explain:   "▶ DIESEN EINGRIFF ERKLÄREN",
+    ai_loading:   "Lastfluss wird analysiert…",
+    ai_cfg:       "Provider/Modell:",
+    ai_cfg_none:  "nicht konfiguriert",
+    ai_cfg_link:  "Einstellungen",
+    freeze_off:   "⏸ EINFRIEREN",
+    freeze_on:    "❄ EINGEFROREN",
+    freeze_tip_off: "Live-Daten pausieren — für Unterricht und Präsentationen",
+    freeze_tip_on:  "Live-Aktualisierung pausiert. Klicken zum Fortsetzen.",
+    bat_add:      "+ BATTERIESPEICHER HINZUFÜGEN",
+    dlr_head:     "WETTER / DLR",
+    dlr_sub_ref:  "AC-Leitungskapazität bei Referenzbedingungen",
+    dlr_sub:      "AC-Leitungskapazität vs. Referenz",
+    dlr_temp:     "Außentemperatur",
+    dlr_wind:     "Windgeschwindigkeit",
+    dlr_solar:    "Sonneneinstrahlung",
+    dlr_heatwave: "🌡 Hitzewelle",
+    dlr_summer:   "☀ Sommer",
+    dlr_standard: "◎ Standard",
+    dlr_winter:   "❄ Winter",
+    dlr_storm:    "⛈ Sturm",
+    cas_head:     "KASKADEN-SIMULATION",
+    cas_btn:      "⚡ KASKADE",
+    cas_thresh:   "Auslöse-Schwelle:",
+    cas_stable:   "STABIL — keine weiteren Ausfälle",
+    cas_island:   "NETZAUFTRENNUNG",
+    cas_maxstep:  "MAX. SCHRITTE ERREICHT",
+    cas_step:     "Schritt",
+    cas_tripped:  "getrennt",
+    cas_util:     "Auslas.",
+    cas_islands:  "Inseln",
+    cas_clear:    "■ KASKADE ZURÜCKSETZEN",
+    cas_summary_stable: "Leitungen getrennt · Netz stabil",
+    cas_summary_split:  "Leitungen getrennt · NETZAUFTRENNUNG",
+    bat_remove:   "✕ entfernen",
+    bat_head:     "BATTERIESPEICHER",
+    bat_cap:      "Kapazität",
+    bat_pmax:     "Max. Leistung",
+    bat_soc:      "Ladezustand",
+    bat_pset:     "P-Sollwert",
+    bat_mode_manual: "MANUELL",
+    bat_mode_freq:   "FREQUENZSTÜTZUNG",
+    bat_standby:  "Bereitschaft",
+    bat_empty:    "bis leer",
+    bat_full:     "bis voll",
+    bat_crit:     "⚠ fast leer",
+    bat_droop:    "5% Droop · Vollleistung bei ±200 mHz",
+    bat_cur_p:    "Aktuelle Leistung:",
+    bat_sign:     "+ Entladen · − Laden",
+    modal_title:  "KI-LERNMODUS — EINSTELLUNGEN",
+    lbl_provider: "KI-ANBIETER",
+    lbl_model:    "MODELL",
+    lbl_key:      "API-SCHLÜSSEL",
+    lbl_key_hint: "Der Schlüssel wird nur im Browser gespeichert (localStorage). Er wird nirgendwo außer an den Endpunkt des Anbieters gesendet.",
+    btn_cancel:   "ABBRECHEN",
+    btn_save:     "SPEICHERN & SCHLIESSEN",
+  }
+};
+function T(k){return(STRINGS[CUR_LANG]||STRINGS.en)[k]||STRINGS.en[k]||k;}
+
+const ZONE_EN={
+  FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",CH:"Switzerland",
+  AT:"Austria",IT:"Italy",SI:"Slovenia",HR:"Croatia",CZ:"Czechia",
+  SK:"Slovakia",HU:"Hungary",PL:"Poland",RO:"Romania",BG:"Bulgaria",
+  GR:"Greece",RS:"Serbia",BA:"Bosnia-H.",ME:"Montenegro",MK:"N. Macedonia",
+  AL:"Albania",ES:"Spain",PT:"Portugal",DK1:"Denmark W",EE:"Estonia",
+  LV:"Latvia",LT:"Lithuania",NO1:"Norway SE",NO2:"Norway SW",NO3:"Norway Mid",
+  NO4:"Norway N",NO5:"Norway W",SE1:"Sweden N",SE2:"Sweden N-Mid",
+  SE3:"Sweden S-Mid",SE4:"Sweden S",FI:"Finland",DK2:"Denmark E",
+  GB:"Gt. Britain",IE:"Ireland (SEM)"
+};
+function zoneName(c){
+  return CUR_LANG==='en'?(ZONE_EN[c]||ZONES[c].name):ZONES[c].name;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   BATTERY STORAGE MODULE
+   Each zone can have one virtual battery attached to it.
+   Two operating modes:
+     manual  — user sets P setpoint (±MW); like HVDC without a counterpart
+     freq    — auto-droop: P ∝ Δf; 5% droop = full power at ±200 mHz
+   SoC is a settable initial condition (static model); the key didactic
+   output is "time to empty/full" — stored energy has a duration limit.
+   In freq mode, solve() iterates until convergence (≤6 passes, ~5 MW δ).
+   ══════════════════════════════════════════════════════════════════════ */
+
+let batteries={};
+function batP(c){const b=batteries[c];if(!b)return 0;
+  if(b.mode==='manual'){if(b.soc<=0.005&&b.p_manual>0)return 0;
+    if(b.soc>=0.995&&b.p_manual<0)return 0;return b.p_manual;}
+  return b.p_freq||0;}
+function batSoCCol(s){return s>0.6?'var(--ok)':s>0.2?'var(--warn)':'var(--bad)';}
+function batTimeLabel(c){const b=batteries[c];if(!b)return'';const p=batP(c);
+  if(Math.abs(p)<2)return T('bat_standby');
+  if(p>0){const h=b.cap_mwh*b.soc/p;if(h<0.083)return T('bat_crit');
+    return h<1?`${Math.round(h*60)} min \u2192 ${T('bat_empty')}`:`${h.toFixed(1)} h \u2192 ${T('bat_empty')}`;}
+  const h=b.cap_mwh*(1-b.soc)/(-p);
+  return h<1?`${Math.round(h*60)} min \u2192 ${T('bat_full')}`:`${h.toFixed(1)} h \u2192 ${T('bat_full')}`;}
+function addBattery(c){batteries[c]={cap_mwh:500,p_max:100,soc:0.8,mode:'manual',p_manual:0,p_freq:0};
+  selected={type:'zone',key:c};buildControls();recompute();}
+function removeBattery(c){delete batteries[c];buildControls();recompute();}
+function onBatCap(c,v){if(batteries[c])batteries[c].cap_mwh=+v;
+  const el=document.getElementById('amt-bat-cap-'+c);if(el)el.textContent=v+' MWh';
+  _batRatio(c);batDispUpdate(c);recompute();}
+function onBatPmax(c,v){if(batteries[c]){batteries[c].p_max=+v;
+    batteries[c].p_manual=Math.max(-v,Math.min(+v,batteries[c].p_manual));
+    const sl=document.getElementById('sl-bat-p-'+c);
+    if(sl){sl.min=-v;sl.max=+v;sl.value=batteries[c].p_manual;}}
+  const el=document.getElementById('amt-bat-pmax-'+c);if(el)el.textContent=v+' MW';
+  _batRatio(c);batDispUpdate(c);recompute();}
+function onBatSoC(c,v){if(batteries[c])batteries[c].soc=+v/100;
+  const el=document.getElementById('amt-bat-soc-'+c);if(el)el.textContent=v+'%';
+  batDispUpdate(c);recompute();}
+function onBatMode(c,mode){if(batteries[c]){batteries[c].mode=mode;
+    if(mode==='manual')batteries[c].p_freq=0;}
+  ['manual','freq'].forEach(m=>{const b=document.getElementById('bat-mode-'+c+'-'+m);
+    if(b)b.classList.toggle('active',m===mode);});
+  const ps=document.getElementById('bat-p-sec-'+c);
+  const fs=document.getElementById('bat-f-sec-'+c);
+  if(ps)ps.style.display=mode==='manual'?'':'none';
+  if(fs)fs.style.display=mode==='freq'?'':'none';recompute();}
+function onBatP(c,v){if(batteries[c])batteries[c].p_manual=+v;
+  const el=document.getElementById('amt-bat-p-'+c);
+  if(el){el.textContent=(+v>=0?'+':'')+v+' MW';
+    el.className='amt '+(+v>0?'up':+v<0?'dn':'');}
+  batDispUpdate(c);recompute();}
+function _batRatio(c){const b=batteries[c];if(!b)return;
+  const el=document.getElementById('bat-ratio-'+c);
+  if(el)el.textContent='E/P: '+(b.cap_mwh/b.p_max).toFixed(1)+' h';}
+function batDispUpdate(c){const b=batteries[c];if(!b)return;
+  const fill=document.getElementById('bat-soc-fill-'+c);
+  if(fill){fill.style.width=Math.round(b.soc*100)+'%';fill.style.background=batSoCCol(b.soc);}
+  const tl=document.getElementById('bat-time-'+c);if(tl)tl.textContent=batTimeLabel(c);}
+function batFreqDisp(c){const b=batteries[c];if(!b||b.mode!=='freq')return;
+  const el=document.getElementById('bat-fp-'+c);if(!el)return;
+  const p=b.p_freq||0;el.textContent=(p>=0?'+':'')+Math.round(p)+' MW';
+  el.style.color=p>0?'var(--ok)':p<0?'var(--bad)':'var(--dim)';batDispUpdate(c);}
+function batPanelHTML(c){const b=batteries[c];
+  if(!b)return'<button class="bat-add" onclick="addBattery(\''+c+'\')">'+T('bat_add')+'</button>';
+  const soc=Math.round(b.soc*100),ratio=(b.cap_mwh/b.p_max).toFixed(1);
+  const fp=b.p_freq||0;
+  return'<div class="bat-panel"><div class="bat-head"><span class="k">'+T('bat_head')+'</span>'
+    +'<button class="bat-remove" onclick="removeBattery(\''+c+'\')">'+T('bat_remove')+'</button></div>'
+    +'<div class="bat-soc-wrap"><div class="bat-soc-track"><div class="bat-soc-fill" id="bat-soc-fill-'+c+'" style="width:'+soc+'%;background:'+batSoCCol(b.soc)+'"></div></div></div>'
+    +'<div class="bat-time" id="bat-time-'+c+'">'+batTimeLabel(c)+'</div>'
+    +'<div class="bat-mode-row">'
+    +'<button class="bat-mode-btn'+(b.mode==='manual'?' active':'')+'" id="bat-mode-'+c+'-manual" onclick="onBatMode(\''+c+'\',\'manual\')">'+T('bat_mode_manual')+'</button>'
+    +'<button class="bat-mode-btn'+(b.mode==='freq'?' active':'')+'" id="bat-mode-'+c+'-freq" onclick="onBatMode(\''+c+'\',\'freq\')">'+T('bat_mode_freq')+'</button>'
+    +'</div>'
+    +'<div class="slrow"><div class="lab"><span>'+T('bat_cap')+'</span><span class="amt" id="amt-bat-cap-'+c+'">'+b.cap_mwh+' MWh</span></div>'
+    +'<input type="range" min="50" max="5000" step="50" value="'+b.cap_mwh+'" oninput="onBatCap(\''+c+'\',this.value)"></div>'
+    +'<div class="slrow"><div class="lab"><span>'+T('bat_pmax')+'</span><span class="amt" id="amt-bat-pmax-'+c+'">'+b.p_max+' MW</span></div>'
+    +'<input type="range" min="10" max="2000" step="10" value="'+b.p_max+'" oninput="onBatPmax(\''+c+'\',this.value)"></div>'
+    +'<div class="bat-ratio" id="bat-ratio-'+c+'">E/P: '+ratio+' h</div>'
+    +'<div class="slrow"><div class="lab"><span>'+T('bat_soc')+'</span><span class="amt" id="amt-bat-soc-'+c+'">'+soc+'%</span></div>'
+    +'<input type="range" min="0" max="100" step="1" value="'+soc+'" oninput="onBatSoC(\''+c+'\',this.value)"></div>'
+    +'<div id="bat-p-sec-'+c+'" style="'+(b.mode==='manual'?'':'display:none')+'">'
+    +'<div class="slrow"><div class="lab"><span>'+T('bat_pset')+'</span>'
+    +'<span class="amt'+(b.p_manual>0?' up':b.p_manual<0?' dn':'')+'" id="amt-bat-p-'+c+'">'+(b.p_manual>=0?'+':'')+b.p_manual+' MW</span></div>'
+    +'<input type="range" min="'+-b.p_max+'" max="'+b.p_max+'" step="5" value="'+b.p_manual+'" id="sl-bat-p-'+c+'" oninput="onBatP(\''+c+'\',this.value)"></div>'
+    +'<div style="font-size:9px;color:var(--dim2);padding:0 0 6px">'+T('bat_sign')+'</div></div>'
+    +'<div id="bat-f-sec-'+c+'" style="'+(b.mode==='freq'?'':'display:none')+'">'
+    +'<div class="bat-freq-info">'+T('bat_droop')+'<br>'+T('bat_cur_p')+' <span id="bat-fp-'+c+'" style="color:'+(fp>0?'var(--ok)':fp<0?'var(--bad)':'var(--dim)')+'">'+(fp>=0?'+':'')+Math.round(fp)+' MW</span></div></div>'
+    +'</div>';}
+
+/* ══════════════════════════════════════════════════════════════════════
+   DYNAMIC LINE RATING (DLR)
+   Simplified thermal model based on IEEE 738 principles.
+   AC line capacity scales with weather: cool + windy = more capacity,
+   hot + calm + sunny = less. HVDC cables are unaffected (electronically
+   controlled, no sag/thermal limit in the same sense).
+
+   Heat balance at rated conductor temperature T_max = 80°C:
+     Cooling: convective = k_conv × v_wind^0.6 × (T_max − T_amb)
+     Heating: solar absorption = α × S_solar
+     I_max ∝ √(cooling − heating)   →   NTC_dlr = NTC_base × DLR_factor
+
+   Reference calibration point: T=15°C, v=3 m/s, S=200 W/m²  → factor=1.0
+   ══════════════════════════════════════════════════════════════════════ */
+
+const DLR_T_MAX   = 80.0;  // rated conductor temperature [°C]
+const DLR_ALPHA   = 0.0035; // solar absorption coefficient [relative]
+const DLR_T_REF   = 15.0;  // reference ambient temperature [°C]
+const DLR_V_REF   = 3.0;   // reference wind speed [m/s]
+const DLR_S_REF   = 200.0; // reference solar irradiance [W/m²]
+
+let DLR = { T: DLR_T_REF, v: DLR_V_REF, S: DLR_S_REF, factor: 1.0, preset: 'standard' };
+
+function _dlrNet(T_amb, v_wind, S_solar) {
+  const v_eff = Math.max(0.5, v_wind); // minimum 0.5 m/s (natural convection)
+  const cooling = Math.pow(v_eff, 0.6) * (DLR_T_MAX - T_amb);
+  const heating = DLR_ALPHA * S_solar;
+  return Math.max(1.0, cooling - heating);
+}
+
+function computeDLR(T, v, S) {
+  const net_now = _dlrNet(T, v, S);
+  const net_ref = _dlrNet(DLR_T_REF, DLR_V_REF, DLR_S_REF);
+  return Math.max(0.35, Math.min(2.0, Math.sqrt(net_now / net_ref)));
+}
+
+function setDLR(T, v, S, preset) {
+  DLR.T = T; DLR.v = v; DLR.S = S;
+  DLR.factor = computeDLR(T, v, S);
+  DLR.preset = preset || null;
+  updateDLRDisplay();
+  recompute();
+}
+
+function onDLRSlider() {
+  const T = +document.getElementById('dlr-T').value;
+  const v = +document.getElementById('dlr-v').value;
+  const S = +document.getElementById('dlr-S').value;
+  document.getElementById('amt-dlr-T').textContent = T + '°C';
+  document.getElementById('amt-dlr-v').textContent = v + ' m/s';
+  document.getElementById('amt-dlr-S').textContent = S + ' W/m²';
+  DLR.preset = null;
+  document.querySelectorAll('.dlr-preset').forEach(b => b.classList.remove('active'));
+  setDLR(T, v, S, null);
+}
+
+const DLR_PRESETS = [
+  { id:'heatwave', T:38, v:0.5, S:950 },
+  { id:'summer',   T:28, v:2,   S:600 },
+  { id:'standard', T:15, v:3,   S:200 },
+  { id:'winter',   T:2,  v:5,   S:80  },
+  { id:'storm',    T:-5, v:12,  S:0   },
+];
+
+function buildDLR() {
+  document.getElementById('h-dlr').textContent = T('dlr_head');
+
+  // Sliders
+  const s = document.getElementById('dlr-sliders');
+  s.innerHTML =
+    _dlrRow('T', T('dlr_temp'),  -20, 45,  DLR.T, DLR.T+'°C',  'onDLRSlider()') +
+    _dlrRow('v', T('dlr_wind'),   0,  15,  DLR.v, DLR.v+' m/s','onDLRSlider()') +
+    _dlrRow('S', T('dlr_solar'),  0, 1000, DLR.S, DLR.S+' W/m²','onDLRSlider()');
+
+  // Presets
+  document.getElementById('dlr-presets').innerHTML = DLR_PRESETS.map(p =>
+    `<button class="dlr-preset${DLR.preset===p.id?' active':''}"
+      onclick="applyDLRPreset('${p.id}')">${T('dlr_'+p.id)}</button>`
+  ).join('');
+
+  updateDLRDisplay();
+}
+
+function _dlrRow(id, label, min, max, val, disp, handler) {
+  return `<div class="slrow"><div class="lab"><span>${label}</span>
+    <span class="amt" id="amt-dlr-${id}">${disp}</span></div>
+    <input type="range" id="dlr-${id}" min="${min}" max="${max}" step="${id==='S'?50:id==='v'?0.5:1}"
+      value="${val}" oninput="${handler}"></div>`;
+}
+
+function applyDLRPreset(id) {
+  const p = DLR_PRESETS.find(x => x.id === id);
+  if (!p) return;
+  // Update sliders
+  ['T','v','S'].forEach(k => {
+    const el = document.getElementById('dlr-'+k);
+    if (el) el.value = p[k];
+    const al = document.getElementById('amt-dlr-'+k);
+    if (al) al.textContent = p[k] + (k==='T'?'°C':k==='v'?' m/s':' W/m²');
+  });
+  document.querySelectorAll('.dlr-preset').forEach(b =>
+    b.classList.toggle('active', b.textContent === T('dlr_'+id) || b.onclick?.toString().includes(id)));
+  setDLR(p.T, p.v, p.S, id);
+}
+
+function updateDLRDisplay() {
+  const f = DLR.factor;
+  const el = document.getElementById('dlr-factor-disp');
+  const sub = document.getElementById('dlr-sub');
+  el.textContent = '×' + f.toFixed(2);
+  el.className = 'dlr-factor ' + (f >= 1.1 ? 'high' : f >= 0.85 ? 'ok' : f >= 0.65 ? 'low' : 'crit');
+  const pct = Math.round((f - 1) * 100);
+  sub.textContent = f === 1.0
+    ? T('dlr_sub_ref')
+    : T('dlr_sub') + ': ' + (pct >= 0 ? '+' : '') + pct + '%';
+  // Update active preset buttons
+  document.querySelectorAll('.dlr-preset').forEach(b => {
+    const pid = b.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+    b.classList.toggle('active', pid === DLR.preset);
+  });
+}
+const CATCOL={nuclear:"#ff5c7a",coal:"#8a94a0",gas:"#ff9838",hydro:"#3aa0ff",
+  wind:"#3ddc84",solar:"#ffd23d",biomass:"#8fd14f",other:"#9aa7b5"};
+const CATEN={nuclear:"Nuclear",coal:"Coal",gas:"Gas",hydro:"Hydro",
+  wind:"Wind",solar:"Solar",biomass:"Biomass",other:"Other"};
+const CATDE={nuclear:"Kernkraft",coal:"Kohle",gas:"Gas",hydro:"Wasser",
+  wind:"Wind",solar:"Solar",biomass:"Biomasse",other:"Sonstige"};
+function catLabel(k){return(CUR_LANG==='de'?CATDE:CATEN)[k]||k;}
+
+const SYNCS=["CE","N","GB","IE"];
+
+/* ══════════════════════════════════════════════════════════════════════
+   CASCADE SIMULATION
+   Iteratively trips overloaded AC lines until the grid is stable or
+   splits. Models the protection relay cascade that turns a single
+   overload into a large-scale blackout.
+
+   Algorithm:
+     1. Solve current state (incl. DLR, shocks, batteries)
+     2. Find all AC lines with utilisation > threshold
+     3. Trip them (cascadeTrips set → lineFactor returns 0 for those)
+     4. Re-solve → find new overloads → repeat
+     5. Stop when: stable | grid split | max steps
+
+   cascadeTrips is separate from lineDerate: user shocks survive a
+   cascade clear, and cascade trips survive a shock reset. Both are
+   cleared on resetAll().
+
+   Combined with DLR: set Heatwave (×0.44 NTC) → run Cascade →
+   watch lines fall in sequence as reduced capacity causes overloads
+   that would be safe in standard conditions.
+   ══════════════════════════════════════════════════════════════════════ */
+
+let cascadeTrips = {};   // key → 0 (tripped by cascade); separate from lineDerate
+let cascadeLog   = [];   // array of step records
+let cascadeThresh = 1.0; // trip threshold (fraction of NTC, default 100%)
+
+function _casKey(a, b){ return a + '-' + b; }
+function _casTripped(l){
+  return cascadeTrips[_casKey(l[0],l[1])] !== undefined ||
+         cascadeTrips[_casKey(l[1],l[0])] !== undefined;
+}
+
+function openCascade(){
+  // Build threshold picker and run
+  const card = document.getElementById('cascadecard');
+  const list = document.getElementById('cascadelist');
+
+  // Threshold selector injected before list
+  let threshHTML = `<div class="cascade-thresh">
+    <span id="cas-thresh-lbl">${T('cas_thresh')}</span>
+    <select id="cas-thresh-sel" onchange="cascadeThresh=+this.value">
+      <option value="1.0" ${cascadeThresh===1.0?'selected':''}>100% NTC</option>
+      <option value="1.1" ${cascadeThresh===1.1?'selected':''}>110% NTC</option>
+      <option value="1.2" ${cascadeThresh===1.2?'selected':''}>120% NTC</option>
+      <option value="1.3" ${cascadeThresh===1.3?'selected':''}>130% NTC</option>
+    </select>
+  </div>`;
+  list.innerHTML = threshHTML + `<div style="padding:8px 11px;font-size:10px;color:var(--dim)">Running…</div>`;
+  card.style.display = 'block';
+  document.getElementById('h-cascade').textContent = T('cas_head');
+  document.getElementById('cascade-clear-btn').textContent = T('cas_clear');
+
+  setTimeout(() => runCascade(cascadeThresh), 10); // yield to render "Running…"
+}
+
+function runCascade(thresh){
+  // Reset any previous cascade trips
+  cascadeTrips = {};
+  cascadeLog = [];
+  let totalTripped = 0;
+  let finalSplit = false;
+
+  for(let step = 0; step < 12; step++){
+    const res = solve();
+    const newTrips = res.flows.filter(f =>
+      f.kind === 'AC' &&
+      f.util > thresh &&
+      !_casTripped(LINES.find(l => l[0]===f.a && l[1]===f.b && (l[6]||null)===f.label))
+    ).sort((a,b) => b.util - a.util);
+
+    if(newTrips.length === 0){
+      cascadeLog.push({step, type:'stable', nIslands:res.nIslands,
+        maxUtil:res.maxUtil, nOver:res.nOver});
+      break;
+    }
+
+    // Trip all overloaded lines at this step
+    const stepped = newTrips.map(f => {
+      const ln = LINES.find(l => l[0]===f.a && l[1]===f.b && (l[6]||null)===f.label);
+      if(ln){ cascadeTrips[_casKey(ln[0],ln[1])] = 0; }
+      return { a:f.a, b:f.b, label:f.label, util:f.util };
+    });
+    totalTripped += stepped.length;
+
+    // Re-solve after trips to get updated state
+    const res2 = solve();
+    cascadeLog.push({
+      step: step+1, type:'trip',
+      tripped: stepped,
+      nIslands: res2.nIslands,
+      maxUtil: res2.maxUtil,
+      nOver: res2.nOver,
+    });
+
+    if(res2.nIslands > 4){
+      cascadeLog.push({step:step+2, type:'island',
+        nIslands:res2.nIslands, maxUtil:res2.maxUtil});
+      finalSplit = true;
+      break;
+    }
+  }
+
+  if(cascadeLog.length > 0 && cascadeLog[cascadeLog.length-1].type === 'trip'){
+    cascadeLog.push({step:cascadeLog.length+1, type:'maxstep',
+      nIslands:0, maxUtil:0});
+  }
+
+  renderCascade(totalTripped, finalSplit);
+  recompute(); // re-render map with cascade trips applied
+}
+
+function renderCascade(totalTripped, split){
+  const card = document.getElementById('cascadecard');
+  const list = document.getElementById('cascadelist');
+  card.style.display = 'block';
+
+  const summary = totalTripped === 0
+    ? `<span style="color:var(--ok)">${T('cas_stable')}</span>`
+    : `${totalTripped} ${split ? T('cas_summary_split') : T('cas_summary_stable')}`;
+
+  let html = `<div class="cascade-thresh">
+    <span id="cas-thresh-lbl">${T('cas_thresh')}</span>
+    <select id="cas-thresh-sel" onchange="cascadeThresh=+this.value;openCascade()">
+      <option value="1.0" ${cascadeThresh===1.0?'selected':''}>100% NTC</option>
+      <option value="1.1" ${cascadeThresh===1.1?'selected':''}>110% NTC</option>
+      <option value="1.2" ${cascadeThresh===1.2?'selected':''}>120% NTC</option>
+      <option value="1.3" ${cascadeThresh===1.3?'selected':''}>130% NTC</option>
+    </select>
+    <span style="margin-left:6px">${summary}</span>
+  </div>`;
+
+  cascadeLog.forEach(entry => {
+    if(entry.type === 'trip'){
+      const tripStr = entry.tripped.map(t =>
+        `${t.a}–${t.b}${t.label?' ('+t.label+')':''} `+
+        `<span style="color:var(--bad)">${Math.round(t.util*100)}%</span>`
+      ).join(', ');
+      html += `<div class="cascade-step">
+        <div class="cs-head">
+          <span class="cs-num">${T('cas_step')} ${entry.step}</span>
+          <span style="color:var(--dim);font-size:9px">`+
+          `${entry.nIslands > 4 ? `<span style="color:var(--bad)">${T('cas_islands')}: ${entry.nIslands}</span>` :
+            `${T('cas_islands')}: ${entry.nIslands} · ${T('cas_util')}: ${Math.round(entry.maxUtil*100)}%`}</span>
+        </div>
+        <div class="cs-detail">${T('cas_tripped')}: ${tripStr}</div>
+      </div>`;
+    } else if(entry.type === 'stable'){
+      html += `<div class="cascade-step stable">
+        <div class="cs-head">
+          <span class="cs-num">${T('cas_step')} ${entry.step}</span>
+          <span style="color:var(--ok);font-size:9px">${T('cas_util')}: ${Math.round(entry.maxUtil*100)}%</span>
+        </div>
+        <div class="cs-detail" style="color:var(--ok)">${T('cas_stable')}</div>
+      </div>`;
+    } else if(entry.type === 'island'){
+      html += `<div class="cascade-step island">
+        <div class="cs-head">
+          <span class="cs-num">${T('cas_step')} ${entry.step}</span>
+          <span style="color:var(--bad);font-size:9px">${entry.nIslands} ${T('cas_islands')}</span>
+        </div>
+        <div class="cs-detail" style="color:var(--bad)">${T('cas_island')}</div>
+      </div>`;
+    } else if(entry.type === 'maxstep'){
+      html += `<div class="cascade-step">
+        <div class="cs-detail" style="color:var(--warn)">${T('cas_maxstep')}</div>
+      </div>`;
+    }
+  });
+
+  list.innerHTML = html;
+}
+
+function clearCascade(){
+  cascadeTrips = {};
+  cascadeLog = [];
+  document.getElementById('cascadecard').style.display = 'none';
+  recompute();
+}
+const ZONES={"FR":{"name":"Frankreich","sync":"CE","lat":46.6,"lon":2.4,"load":58000,"gen":{"nuclear":45000,"coal":0,"gas":3000,"hydro":9000,"wind":4000,"solar":1000,"biomass":1000,"other":0}},"DE":{"name":"Deutschland","sync":"CE","lat":51.2,"lon":10.4,"load":62000,"gen":{"nuclear":0,"coal":14000,"gas":8000,"hydro":3000,"wind":28000,"solar":6000,"biomass":5000,"other":0}},"NL":{"name":"Niederlande","sync":"CE","lat":52.2,"lon":5.3,"load":13000,"gen":{"nuclear":0,"coal":1500,"gas":6000,"hydro":0,"wind":3500,"solar":1000,"biomass":0,"other":500}},"BE":{"name":"Belgien","sync":"CE","lat":50.6,"lon":4.6,"load":9500,"gen":{"nuclear":4000,"coal":0,"gas":2500,"hydro":0,"wind":1500,"solar":700,"biomass":0,"other":300}},"CH":{"name":"Schweiz","sync":"CE","lat":46.9,"lon":8.2,"load":7000,"gen":{"nuclear":2200,"coal":0,"gas":0,"hydro":5500,"wind":0,"solar":200,"biomass":0,"other":100}},"AT":{"name":"Österreich","sync":"CE","lat":47.6,"lon":14.1,"load":8000,"gen":{"nuclear":0,"coal":0,"gas":900,"hydro":6000,"wind":1000,"solar":200,"biomass":100,"other":0}},"IT":{"name":"Italien","sync":"CE","lat":43.5,"lon":11.5,"load":44000,"gen":{"nuclear":0,"coal":1000,"gas":21000,"hydro":7000,"wind":2500,"solar":6000,"biomass":0,"other":2500}},"SI":{"name":"Slowenien","sync":"CE","lat":46.1,"lon":14.8,"load":1600,"gen":{"nuclear":700,"coal":300,"gas":0,"hydro":600,"wind":0,"solar":0,"biomass":0,"other":100}},"HR":{"name":"Kroatien","sync":"CE","lat":45.3,"lon":15.9,"load":2200,"gen":{"nuclear":0,"coal":0,"gas":400,"hydro":1200,"wind":300,"solar":0,"biomass":0,"other":100}},"CZ":{"name":"Tschechien","sync":"CE","lat":49.8,"lon":15.5,"load":8000,"gen":{"nuclear":3800,"coal":3000,"gas":500,"hydro":0,"wind":0,"solar":800,"biomass":0,"other":700}},"SK":{"name":"Slowakei","sync":"CE","lat":48.7,"lon":19.7,"load":3200,"gen":{"nuclear":1900,"coal":0,"gas":500,"hydro":700,"wind":0,"solar":0,"biomass":0,"other":300}},"HU":{"name":"Ungarn","sync":"CE","lat":47.2,"lon":19.4,"load":5500,"gen":{"nuclear":1900,"coal":0,"gas":1200,"hydro":0,"wind":0,"solar":800,"biomass":0,"other":300}},"PL":{"name":"Polen","sync":"CE","lat":52.1,"lon":19.4,"load":22000,"gen":{"nuclear":0,"coal":16000,"gas":2000,"hydro":0,"wind":3000,"solar":1000,"biomass":0,"other":500}},"RO":{"name":"Rumänien","sync":"CE","lat":45.9,"lon":25.0,"load":7500,"gen":{"nuclear":1300,"coal":1200,"gas":1500,"hydro":2500,"wind":1000,"solar":500,"biomass":0,"other":0}},"BG":{"name":"Bulgarien","sync":"CE","lat":42.7,"lon":25.3,"load":4500,"gen":{"nuclear":2000,"coal":1500,"gas":300,"hydro":800,"wind":0,"solar":400,"biomass":0,"other":0}},"GR":{"name":"Griechenland","sync":"CE","lat":39.3,"lon":22.5,"load":6500,"gen":{"nuclear":0,"coal":300,"gas":3000,"hydro":1200,"wind":1500,"solar":1500,"biomass":0,"other":200}},"RS":{"name":"Serbien","sync":"CE","lat":44.2,"lon":20.9,"load":4500,"gen":{"nuclear":0,"coal":3000,"gas":300,"hydro":1400,"wind":0,"solar":0,"biomass":0,"other":0}},"BA":{"name":"Bosnien-H.","sync":"CE","lat":44.2,"lon":17.8,"load":1700,"gen":{"nuclear":0,"coal":1100,"gas":0,"hydro":700,"wind":0,"solar":0,"biomass":0,"other":0}},"ME":{"name":"Montenegro","sync":"CE","lat":42.7,"lon":19.3,"load":550,"gen":{"nuclear":0,"coal":220,"gas":0,"hydro":350,"wind":0,"solar":0,"biomass":0,"other":0}},"MK":{"name":"Nordmazedon.","sync":"CE","lat":41.6,"lon":21.7,"load":1100,"gen":{"nuclear":0,"coal":500,"gas":250,"hydro":250,"wind":0,"solar":0,"biomass":0,"other":150}},"AL":{"name":"Albanien","sync":"CE","lat":41.1,"lon":20.0,"load":1000,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":1050,"wind":0,"solar":0,"biomass":0,"other":0}},"ES":{"name":"Spanien","sync":"CE","lat":40.3,"lon":-3.7,"load":30000,"gen":{"nuclear":6000,"coal":0,"gas":6000,"hydro":4000,"wind":8000,"solar":6000,"biomass":0,"other":1000}},"PT":{"name":"Portugal","sync":"CE","lat":39.6,"lon":-8.0,"load":6000,"gen":{"nuclear":0,"coal":0,"gas":1500,"hydro":1500,"wind":2000,"solar":1000,"biomass":0,"other":200}},"DK1":{"name":"Dänemark W","sync":"CE","lat":56.0,"lon":9.2,"load":2400,"gen":{"nuclear":0,"coal":300,"gas":300,"hydro":0,"wind":2600,"solar":0,"biomass":500,"other":0}},"EE":{"name":"Estland","sync":"CE","lat":58.8,"lon":25.5,"load":950,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":0,"wind":250,"solar":150,"biomass":150,"other":500}},"LV":{"name":"Lettland","sync":"CE","lat":56.9,"lon":24.9,"load":800,"gen":{"nuclear":0,"coal":0,"gas":300,"hydro":500,"wind":100,"solar":0,"biomass":0,"other":0}},"LT":{"name":"Litauen","sync":"CE","lat":55.3,"lon":23.9,"load":1500,"gen":{"nuclear":0,"coal":0,"gas":200,"hydro":100,"wind":500,"solar":200,"biomass":0,"other":100}},"NO1":{"name":"Norwegen SO","sync":"N","lat":60.5,"lon":10.8,"load":4500,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":4200,"wind":100,"solar":0,"biomass":0,"other":0}},"NO2":{"name":"Norwegen SW","sync":"N","lat":58.5,"lon":7.5,"load":4200,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":6500,"wind":300,"solar":0,"biomass":0,"other":0}},"NO3":{"name":"Norwegen Mi","sync":"N","lat":63.5,"lon":10.0,"load":2600,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2300,"wind":400,"solar":0,"biomass":0,"other":0}},"NO4":{"name":"Norwegen N","sync":"N","lat":68.5,"lon":17.0,"load":1900,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2400,"wind":400,"solar":0,"biomass":0,"other":0}},"NO5":{"name":"Norwegen W","sync":"N","lat":60.9,"lon":6.2,"load":1900,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2800,"wind":0,"solar":0,"biomass":0,"other":0}},"SE1":{"name":"Schweden N","sync":"N","lat":66.5,"lon":20.5,"load":1300,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2800,"wind":700,"solar":0,"biomass":0,"other":0}},"SE2":{"name":"Schweden NMi","sync":"N","lat":62.8,"lon":15.5,"load":1500,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":3200,"wind":1300,"solar":0,"biomass":0,"other":0}},"SE3":{"name":"Schweden SMi","sync":"N","lat":59.5,"lon":15.5,"load":9500,"gen":{"nuclear":6100,"coal":0,"gas":0,"hydro":1200,"wind":1800,"solar":300,"biomass":0,"other":0}},"SE4":{"name":"Schweden S","sync":"N","lat":56.5,"lon":14.2,"load":2600,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":0,"wind":1000,"solar":200,"biomass":0,"other":400}},"FI":{"name":"Finnland","sync":"N","lat":62.5,"lon":26.0,"load":9500,"gen":{"nuclear":4400,"coal":0,"gas":0,"hydro":1500,"wind":2200,"solar":0,"biomass":1200,"other":400}},"DK2":{"name":"Dänemark O","sync":"N","lat":55.5,"lon":11.9,"load":1600,"gen":{"nuclear":0,"coal":200,"gas":0,"hydro":0,"wind":1000,"solar":0,"biomass":400,"other":0}},"GB":{"name":"Großbritan.","sync":"GB","lat":53.0,"lon":-1.8,"load":32000,"gen":{"nuclear":4500,"coal":0,"gas":14000,"hydro":0,"wind":9000,"solar":1500,"biomass":2500,"other":800}},"IE":{"name":"Irland (SEM)","sync":"IE","lat":53.3,"lon":-7.8,"load":5200,"gen":{"nuclear":0,"coal":200,"gas":2800,"hydro":0,"wind":1800,"solar":0,"biomass":0,"other":500}}};
+const LINES=[["FR","DE",12.0,4800,"AC",0.0,""],["FR","BE",9.0,4300,"AC",0.0,""],["FR","CH",10.0,3700,"AC",0.0,""],["FR","IT",8.0,4350,"AC",0.0,""],["FR","ES",8.0,2800,"AC",0.0,""],["DE","NL",11.0,5000,"AC",0.0,""],["DE","CH",9.0,4600,"AC",0.0,""],["DE","AT",14.0,5400,"AC",0.0,""],["DE","CZ",10.0,2100,"AC",0.0,""],["DE","PL",7.0,3000,"AC",0.0,""],["NL","BE",8.0,2400,"AC",0.0,""],["CH","AT",7.0,1700,"AC",0.0,""],["CH","IT",10.0,4240,"AC",0.0,""],["AT","IT",2.0,455,"AC",0.0,""],["AT","CZ",6.0,900,"AC",0.0,""],["AT","HU",7.0,1200,"AC",0.0,""],["AT","SI",6.0,950,"AC",0.0,""],["CZ","SK",8.0,1100,"AC",0.0,""],["CZ","PL",6.0,600,"AC",0.0,""],["SK","HU",7.0,1300,"AC",0.0,""],["SK","PL",4.0,500,"AC",0.0,""],["HU","SI",4.0,600,"AC",0.0,""],["HU","HR",5.0,900,"AC",0.0,""],["SI","HR",5.0,1200,"AC",0.0,""],["SI","IT",4.0,680,"AC",0.0,""],["ES","PT",9.0,3400,"AC",0.0,""],["DE","BE",0.0,1000,"DC",300,"ALEGrO"],["HU","RO",6.0,1300,"AC",0.0,""],["HU","RS",5.0,1200,"AC",0.0,""],["HR","RS",4.0,600,"AC",0.0,""],["HR","BA",5.0,1000,"AC",0.0,""],["RS","BA",4.0,700,"AC",0.0,""],["RS","RO",4.0,1000,"AC",0.0,""],["RS","BG",4.0,600,"AC",0.0,""],["RS","ME",3.0,600,"AC",0.0,""],["RS","MK",3.0,550,"AC",0.0,""],["RO","BG",5.0,1000,"AC",0.0,""],["BG","GR",4.0,800,"AC",0.0,""],["BG","MK",3.0,500,"AC",0.0,""],["GR","MK",3.0,550,"AC",0.0,""],["GR","AL",3.0,400,"AC",0.0,""],["ME","AL",3.0,500,"AC",0.0,""],["ME","BA",3.0,550,"AC",0.0,""],["IT","GR",0.0,500,"DC",-150,"GRITA"],["IT","ME",0.0,600,"DC",-250,"MONITA"],["DE","DK1",6.0,2500,"AC",0.0,""],["DK1","NL",0.0,700,"DC",200,"COBRAcable"],["PL","LT",4.0,500,"AC",0.0,""],["LT","LV",5.0,1300,"AC",0.0,""],["LV","EE",5.0,1100,"AC",0.0,""],["NO1","NO2",8.0,3500,"AC",0.0,""],["NO1","NO3",3.0,700,"AC",0.0,""],["NO1","NO5",7.0,3900,"AC",0.0,""],["NO2","NO5",3.0,600,"AC",0.0,""],["NO3","NO4",5.0,1200,"AC",0.0,""],["NO3","NO5",4.0,500,"AC",0.0,""],["NO1","SE3",6.0,2100,"AC",0.0,""],["NO3","SE2",4.0,1000,"AC",0.0,""],["NO4","SE1",4.0,700,"AC",0.0,""],["NO4","SE2",3.0,300,"AC",0.0,""],["SE1","SE2",8.0,3300,"AC",0.0,""],["SE2","SE3",9.0,7300,"AC",0.0,""],["SE3","SE4",8.0,5400,"AC",0.0,""],["SE1","FI",5.0,1500,"AC",0.0,""],["SE3","FI",4.0,1200,"AC",0.0,""],["SE4","DK2",6.0,1700,"AC",0.0,""],["DK1","DK2",0.0,600,"DC",200,"Storebælt"],["DK1","NO2",0.0,1700,"DC",-800,"Skagerrak"],["DK1","SE3",0.0,740,"DC",-300,"Konti-Skan"],["DE","DK2",0.0,600,"DC",-200,"Kontek"],["DE","SE4",0.0,615,"DC",-300,"Baltic Cable"],["PL","SE4",0.0,600,"DC",-200,"SwePol"],["DE","NO2",0.0,1400,"DC",-900,"NordLink"],["NL","NO2",0.0,700,"DC",-500,"NorNed"],["LT","SE4",0.0,700,"DC",-250,"NordBalt"],["EE","FI",0.0,1000,"DC",-350,"EstLink 1+2"],["FR","GB",0.0,4000,"DC",1500,"IFA/IFA2/ElecLink"],["BE","GB",0.0,1000,"DC",300,"Nemo Link"],["NL","GB",0.0,1000,"DC",300,"BritNed"],["DK1","GB",0.0,1400,"DC",500,"Viking Link"],["NO2","GB",0.0,1400,"DC",800,"North Sea Link"],["GB","IE",0.0,1000,"DC",300,"EWIC/Greenlink"],["GB","IE",0.0,500,"DC",150,"Moyle"]];
+/* === END TOPOLOGY === */
+
+const CODES=Object.keys(ZONES);
+CODES.forEach(c=>{const g={};CATS.forEach(k=>g[k]=ZONES[c].gen[k]||0);ZONES[c].gen=g;});
+const LKEY=l=>l[0]+"-"+l[1]+(l[6]?"|"+l[6]:"");
+
+/* ── Shock State ── */
+let genShock={},loadShock={},lineDerate={},dcSet={};
+let selected={type:null,key:null};
+
+function lineFactor(l){
+  const k1=l[0]+"-"+l[1],k2=l[1]+"-"+l[0];
+  const d=lineDerate[k1]!==undefined?lineDerate[k1]:
+           lineDerate[k2]!==undefined?lineDerate[k2]:1;
+  // Cascade trips are separate from user derate — both can coexist
+  const c=(cascadeTrips[k1]!==undefined||cascadeTrips[k2]!==undefined)?0:1;
+  return d*c;
+}
+function effGenLoad(c){
+  const z=ZONES[c],g={...z.gen},gs=genShock[c]||{};
+  for(const k in gs)g[k]=Math.max(0,(g[k]||0)+gs[k]);
+  const load=z.load+(loadShock[c]||0);
+  let gsum=0;for(const k in g)gsum+=g[k];
+  return{gsum,load};
+}
+function dcFlow(l){
+  const d=lineFactor(l);
+  const sp=(dcSet[LKEY(l)]!==undefined?dcSet[LKEY(l)]:l[5])*d;
+  const lim=l[3]*d;
+  return Math.max(-lim,Math.min(lim,sp));
+}
+
+/* ── Multi-Zone DC Load Flow ── */
+function solve(){
+  const n=CODES.length,idx={};CODES.forEach((c,i)=>idx[c]=i);
+  const Praw=new Array(n).fill(0),cap=new Array(n).fill(0);
+  CODES.forEach(c=>{const{gsum,load}=effGenLoad(c);
+    Praw[idx[c]]=gsum-load+(ZONES[c].inj||0)+batP(c); // battery: injection not in slack cap
+    cap[idx[c]]=gsum;});
+  const dcF={};
+  LINES.forEach(l=>{if(l[4]!=="DC")return;
+    const f=dcFlow(l);dcF[LKEY(l)]=f;
+    Praw[idx[l[0]]]-=f;Praw[idx[l[1]]]+=f;});
+  const parent={};CODES.forEach(c=>parent[c]=c);
+  const find=x=>{while(parent[x]!==x){parent[x]=parent[parent[x]];x=parent[x];}return x;};
+  LINES.forEach(l=>{if(l[4]!=="AC")return;
+    if(l[2]*lineFactor(l)<1e-9)return;
+    const ra=find(l[0]),rb=find(l[1]);if(ra!==rb)parent[ra]=rb;});
+  const islMap={};CODES.forEach(c=>{const r=find(c);
+    (islMap[r]=islMap[r]||[]).push(c);});
+  const islands=Object.values(islMap);
+  const P=Praw.slice(),reg=new Array(n).fill(0);
+  islands.forEach(isl=>{
+    const ids=isl.map(c=>idx[c]);
+    let imb=0,cs=0;ids.forEach(i=>{imb+=Praw[i];cs+=cap[i];});
+    ids.forEach(i=>{const a=cs?cap[i]/cs:1/ids.length;
+      reg[i]=-a*imb;P[i]+=reg[i];});
+  });
+  const theta=new Array(n).fill(0);
+  islands.forEach(isl=>{
+    if(isl.length<2)return;
+    const mi={};isl.forEach((c,k)=>mi[c]=k);
+    const m=isl.length;
+    const B=Array.from({length:m},()=>new Array(m).fill(0));
+    LINES.forEach(l=>{if(l[4]!=="AC")return;
+      if(!(l[0]in mi)||!(l[1]in mi))return;
+      const b=l[2]*lineFactor(l);if(b<1e-9)return;
+      const i=mi[l[0]],j=mi[l[1]];
+      B[i][i]+=b;B[j][j]+=b;B[i][j]-=b;B[j][i]-=b;});
+    const keep=[...Array(m).keys()].slice(1);
+    const A=keep.map(gi=>keep.map(gj=>B[gi][gj]));
+    const rhs=keep.map(gi=>P[idx[isl[gi]]]);
+    const x=gauss(A,rhs);
+    keep.forEach((gi,ii)=>theta[idx[isl[gi]]]=x[ii]);
+  });
+  const flows=LINES.map(l=>{
+    let f;
+    if(l[4]==="AC")f=l[2]*lineFactor(l)*(theta[idx[l[0]]]-theta[idx[l[1]]]);
+    else f=dcF[LKEY(l)];
+    const dlrMult=l[4]==='AC'?DLR.factor:1.0; // DLR scales thermal limit; HVDC unaffected
+    const effNtc=l[3]*lineFactor(l)*dlrMult;
+    const util=effNtc>1e-9?Math.abs(f)/effNtc:0;
+    return{a:l[0],b:l[1],kind:l[4],label:l[6]||null,ntc:effNtc,ntcBase:l[3],
+      flow:f,abs:Math.abs(f),from:f>=0?l[0]:l[1],to:f>=0?l[1]:l[0],
+      util,over:util>1.001,cut:effNtc<1e-9};
+  });
+  const zones={};
+  CODES.forEach(c=>{const{gsum,load}=effGenLoad(c);const phys=P[idx[c]];
+    zones[c]={gen:gsum,load,net:gsum-load,phys,reg:reg[idx[c]],
+      pos:phys>50?"EXP":phys<-50?"IMP":"BAL"};});
+  let loop=0,dcTot=0;
+  flows.forEach(f=>{loop+=f.abs;if(f.kind==="DC")dcTot+=f.abs;});
+  let result={flows,zones,islands,nIslands:islands.length,
+    maxUtil:Math.max(...flows.map(f=>f.util),0),
+    nOver:flows.filter(f=>f.over).length,loop,dcTot};
+
+  // ── Frequency-support battery: iterative droop convergence ───────────────
+  // Batteries in 'freq' mode respond to the island frequency deviation.
+  // Iterate solve ↔ frequency until P settles (≤5 MW change, max 6 passes).
+  if(Object.values(batteries).some(b=>b&&b.mode==='freq')){
+    for(let iter=0;iter<6;iter++){
+      const freqs=computeFrequencies(result);
+      let maxDelta=0;
+      for(const c in batteries){
+        const b=batteries[c];if(!b||b.mode!=='freq')continue;
+        const fi=freqs.find(f=>f.members.includes(c));if(!fi)continue;
+        // 5% droop: full power at ±200 mHz deviation
+        const p_raw=-fi.dev/200*b.p_max;
+        const p_cl=Math.max(-b.p_max,Math.min(b.p_max,p_raw));
+        const p_new=(b.soc<=0.01&&p_cl>0)?0:(b.soc>=0.99&&p_cl<0)?0:p_cl;
+        maxDelta=Math.max(maxDelta,Math.abs(p_new-(b.p_freq||0)));
+        b.p_freq=p_new;
+      }
+      if(maxDelta<5)break;
+      result=solve(); // re-solve with updated freq-mode injections
+      break; // prevent infinite recursion — one correction step is enough
+    }
+  }
+  return result;
+}
+function gauss(A,b){
+  const n=b.length;if(!n)return[];
+  const M=A.map((r,i)=>[...r,b[i]]);
+  for(let col=0;col<n;col++){
+    let p=col;for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[p][col]))p=r;
+    [M[col],M[p]]=[M[p],M[col]];
+    const pv=M[col][col]||1e-9;
+    for(let r=0;r<n;r++){if(r===col)continue;const f=M[r][col]/pv;
+      for(let k=col;k<=n;k++)M[r][k]-=f*M[col][k];}
+  }
+  return M.map((r,i)=>r[n]/(r[i]||1e-9));
+}
+
+/* ── Live Data ── */
+let LIVE={on:false,meta:{},quality:null,ext:0,nLive:0,total:0,ts:null,
+  target:null,fill:null,cal:null};
+let LIVE_FROZEN=false;
+let liveInterval=null;
+function srcColor(s){return s==="live"?"var(--ok)":s==="stale"?"var(--warn)":"var(--dim2)";}
+
+function updateLiveBadge(){
+  const b=document.getElementById("livebadge");
+  b.className="live";
+  if(!LIVE.on){b.textContent=T("live_def");return;}
+  const q=LIVE.quality;
+  if(q==="poor")b.classList.add("err");else if(q==="partial")b.classList.add("warn");
+  b.textContent=`${T("live_live")} · ${LIVE.nLive}/${LIVE.total}`+(LIVE.cal?` · ${T("live_cal")}`:"");
+  const card=document.getElementById("dqcard"),row=document.getElementById("dqrow");
+  card.style.display="block";
+  const qlab={ok:T("dq_ok"),partial:T("dq_partial"),poor:T("dq_poor")}[q]||q;
+  let h=`<span style="color:${q==='ok'?'var(--ok)':q==='partial'?'var(--warn)':'var(--bad)'}">`+
+        `${T("dq_data")} ${qlab.toUpperCase()}</span><span class="sep">│</span>`;
+  if(LIVE.target){
+    const t=new Date(LIVE.target);
+    h+=`<span>${T("dq_snap")} ${String(t.getUTCHours()).padStart(2,"0")}:`+
+       `${String(t.getUTCMinutes()).padStart(2,"0")} UTC</span><span class="sep">│</span>`;
+  }
+  if(LIVE.cal){
+    let calTxt=`A11: ${LIVE.cal.n_measured} ${T("dq_cal").split("·")[0].trim()}, ${LIVE.cal.n_scaled} ${T("dq_cal").split("·")[1].trim()}`;
+    if(LIVE.cal.mean_abs_error_mw!=null)calTxt+=`, Ø ${LIVE.cal.mean_abs_error_mw} MW`;
+    if(LIVE.cal.n_ntc_raised)calTxt+=`, ${LIVE.cal.n_ntc_raised} ${T("dq_ntc")}`;
+    if(LIVE.cal.n_unmeasured)calTxt+=` · ${LIVE.cal.n_unmeasured} ${T("dq_unmeas")}`;
+    if(LIVE.cal.unpinned_zones&&LIVE.cal.unpinned_zones.length&&LIVE.cal.unpinned_zones.length<=10)
+      calTxt+=` · ${T("dq_unpin")} ${LIVE.cal.unpinned_zones.join(" ")}`;
+    h+=`<span style="color:var(--cyan)" title="${T("dq_unmeas")}">${calTxt}</span><span class="sep">│</span>`;
+  }
+  h+=`<span>${T("dq_bal")} ${(LIVE.ext/1000).toFixed(1)} GW</span><span class="sep">│</span>`;
+  h+=CODES.map(c=>{const m=LIVE.meta[c]||{source:"default"};
+    const tip=m.source==="default"?"Model default"+(m.reason?": "+m.reason:"")
+      :m.source+(m.fill_min?`, ${m.fill_min} min stale`:", current");
+    return `<span class="z" style="color:${srcColor(m.source)}" title="${tip}">${c}</span>`;
+  }).join(" ");
+  row.innerHTML=h;
+}
+
+async function loadLive(){
+  if(!window.GRID_LIVE_ENDPOINT)return;
+  if(LIVE_FROZEN)return;
+  const b=document.getElementById("livebadge");
+  try{
+    const u=window.GRID_LIVE_ENDPOINT+(window.GRID_LIVE_ENDPOINT.includes("?")?"&":"?")+"t="+Date.now();
+    const r=await fetch(u);
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    if(d.zone_input){
+      for(const c in d.zone_input){
+        if(!ZONES[c])continue;
+        const g={};CATS.forEach(k=>g[k]=d.zone_input[c].gen[k]||0);
+        ZONES[c].gen=g;ZONES[c].load=d.zone_input[c].load;
+      }
+    }
+    if(d.dc_setpoints){
+      LINES.forEach(l=>{if(l[4]!=="DC")return;
+        const k=l[0]+"-"+l[1]+(l[6]?" ["+l[6]+"]":"");
+        if(k in d.dc_setpoints)l[5]=d.dc_setpoints[k];});
+    }
+    if(d.suscept_scale){
+      LINES.forEach(l=>{if(l[4]!=="AC")return;
+        const k=l[0]+"-"+l[1];
+        if(k in d.suscept_scale)l[2]=l[2]*d.suscept_scale[k]/(l._sc||1),l._sc=d.suscept_scale[k];});
+    }
+    if(d.zone_injection){
+      for(const c in d.zone_injection){if(ZONES[c])ZONES[c].inj=d.zone_injection[c];}
+    }
+    if(d.ntc_override){
+      LINES.forEach(l=>{
+        const k=l[0]+"-"+l[1]+(l[6]?" ["+l[6]+"]":"");
+        if(k in d.ntc_override){l._ntc0=l._ntc0||l[3];l[3]=d.ntc_override[k];}
+      });
+    }
+    const L=d.live||{};
+    LIVE={on:true,meta:L.zones_meta||{},quality:L.quality,
+      ext:L.external_balance_mw||0,nLive:L.zones_live||0,
+      total:L.zones_total||CODES.length,ts:L.ts_utc,
+      target:L.target_ts||null,fill:L.max_fill_min,cal:L.calibration||null};
+    refreshBaseline();updateLiveBadge();buildControls();recompute();
+    if(LIVE.nLive===0)setTimeout(loadLive,15000);
+  }catch(e){
+    LIVE.on=false;b.className="live err";
+    b.textContent=T("live_fail");
+    console.warn("Live data unavailable:",e.message);
+    setTimeout(loadLive,30000);
+  }
+}
+
+/* ── Projection ── */
+const VW=720,VH=800,PAD=40;
+const LON=[-12,30],LAT=[36,71.5];
+function px(lon){return PAD+(lon-LON[0])/(LON[1]-LON[0])*(VW-2*PAD);}
+function py(lat){return PAD+(LAT[1]-lat)/(LAT[1]-LAT[0])*(VH-2*PAD);}
+function nodeR(c){return 8+Math.sqrt(ZONES[c].load)/22;}
+
+/* ── Rendering ── */
+const svg=document.getElementById("map");
+const SVGNS="http://www.w3.org/2000/svg";
+let edgeEls={},nodeEls={};
+
+function buildSVG(){
+  svg.innerHTML="";
+  const gE=document.createElementNS(SVGNS,"g");svg.appendChild(gE);
+  LINES.forEach(l=>{
+    const x1=px(ZONES[l[0]].lon),y1=py(ZONES[l[0]].lat),
+          x2=px(ZONES[l[1]].lon),y2=py(ZONES[l[1]].lat);
+    const base=document.createElementNS(SVGNS,"line");
+    base.setAttribute("class","edge-base"+(l[4]==="DC"?" dc":""));
+    base.setAttribute("x1",x1);base.setAttribute("y1",y1);
+    base.setAttribute("x2",x2);base.setAttribute("y2",y2);
+    const flow=document.createElementNS(SVGNS,"line");
+    flow.setAttribute("class","edge-flow");
+    const hit=document.createElementNS(SVGNS,"line");
+    hit.setAttribute("class","edge-hit");
+    hit.setAttribute("x1",x1);hit.setAttribute("y1",y1);
+    hit.setAttribute("x2",x2);hit.setAttribute("y2",y2);
+    hit.addEventListener("click",()=>selectLine(l));
+    gE.appendChild(base);gE.appendChild(flow);gE.appendChild(hit);
+    edgeEls[LKEY(l)]={flow};
+  });
+  const gN=document.createElementNS(SVGNS,"g");svg.appendChild(gN);
+  CODES.forEach(c=>{
+    const x=px(ZONES[c].lon),y=py(ZONES[c].lat),r=nodeR(c);
+    const g=document.createElementNS(SVGNS,"g");g.setAttribute("class","node");
+    g.addEventListener("click",()=>selectZone(c));
+    const circ=document.createElementNS(SVGNS,"circle");
+    circ.setAttribute("cx",x);circ.setAttribute("cy",y);circ.setAttribute("r",r);
+    circ.setAttribute("stroke-width","1.4");
+    const t1=document.createElementNS(SVGNS,"text");t1.setAttribute("class","code");
+    t1.setAttribute("x",x);t1.setAttribute("y",y+1.5);t1.setAttribute("text-anchor","middle");
+    t1.textContent=c;
+    const t2=document.createElementNS(SVGNS,"text");t2.setAttribute("class","val");
+    t2.setAttribute("x",x);t2.setAttribute("y",y+r+8);t2.setAttribute("text-anchor","middle");
+    g.appendChild(circ);g.appendChild(t1);g.appendChild(t2);gN.appendChild(g);
+    nodeEls[c]={g,circ,t2,x,y,r};
+  });
+}
+
+function utilColor(f){
+  if(f.kind==="DC")return f.over?"var(--bad)":"var(--dc)";
+  return f.util>1?"var(--bad)":f.util>0.6?"var(--warn)":"var(--ok)";
+}
+function netColor(p){
+  if(Math.abs(p)<50)return "#2a3646";
+  const t=Math.min(1,Math.abs(p)/10000);
+  return p>0?`rgba(61,220,132,${0.22+0.55*t})`:`rgba(255,77,77,${0.22+0.55*t})`;
+}
+
+let anim=0;
+function render(res){
+  LINES.forEach(l=>{
+    const f=res.flows.find(x=>x.a===l[0]&&x.b===l[1]&&x.label===(l[6]||null));
+    const e=edgeEls[LKEY(l)];
+    const A=nodeEls[f.from],Bn=nodeEls[f.to];
+    e.flow.setAttribute("x1",A.x);e.flow.setAttribute("y1",A.y);
+    e.flow.setAttribute("x2",Bn.x);e.flow.setAttribute("y2",Bn.y);
+    if(f.cut){
+      e.flow.setAttribute("stroke","var(--bad)");
+      e.flow.setAttribute("stroke-width","1.8");
+      e.flow.setAttribute("stroke-dasharray","2 5");
+      e.flow.setAttribute("opacity","0.6");
+      e.flow.dataset.speed=0;
+    }else{
+      const thick=f.kind==="DC"?1.5+Math.min(1.0,f.util)*7:0.8+Math.min(1.0,f.util)*10;
+      const dash=f.kind==="DC"?"14 8":"5 7";
+      const spd=Math.min(4,0.5+f.util*3);
+      e.flow.setAttribute("stroke",utilColor(f));
+      e.flow.setAttribute("stroke-width",thick.toFixed(1));
+      e.flow.setAttribute("stroke-dasharray",dash);
+      e.flow.setAttribute("opacity",f.abs<60?0.10:0.92);
+      e.flow.dataset.speed=spd;
+      e.flow.dataset.dir=-1; // line is already oriented x1=from→x2=to; always animate forward
+    }
+  });
+  CODES.forEach(c=>{
+    const z=res.zones[c],el=nodeEls[c];
+    el.circ.setAttribute("fill",netColor(z.phys));
+    el.circ.setAttribute("stroke",z.pos==="EXP"?"var(--ok)":z.pos==="IMP"?"var(--bad)":"#33465c");
+    const src=(LIVE.on&&LIVE.meta[c])?LIVE.meta[c].source:(LIVE.on?"default":null);
+    el.circ.setAttribute("stroke-dasharray",src==="default"?"2 2":"none");
+    el.circ.setAttribute("stroke-opacity",src==="stale"?"0.5":"1");
+    const gw=z.phys/1000;
+    el.t2.textContent=(gw>=0?"+":"")+gw.toFixed(1);
+    el.t2.setAttribute("fill",z.pos==="EXP"?"var(--ok)":z.pos==="IMP"?"var(--bad)":"var(--dim)");
+    el.g.classList.toggle("sel",selected.type==="zone"&&selected.key===c);
+
+    // Battery indicator: small SoC bar below node
+    let batInd=document.getElementById("bat-ind-"+c);
+    if(batteries[c]){
+      const b=batteries[c],soc=b.soc,p=batP(c);
+      if(!batInd){
+        batInd=document.createElementNS(SVGNS,"g");
+        batInd.setAttribute("id","bat-ind-"+c);
+        batInd.setAttribute("class","bat-indicator");
+        const bg=document.createElementNS(SVGNS,"rect");
+        bg.setAttribute("id","bat-bg-"+c);bg.setAttribute("rx","1.5");
+        bg.setAttribute("height","4");bg.setAttribute("fill","#1a2636");
+        const fill=document.createElementNS(SVGNS,"rect");
+        fill.setAttribute("id","bat-fill-"+c);fill.setAttribute("rx","1.5");
+        fill.setAttribute("height","4");
+        batInd.appendChild(bg);batInd.appendChild(fill);svg.appendChild(batInd);
+      }
+      const W=16,x=el.x-W/2,y=el.y+el.r+4;
+      const bg2=document.getElementById("bat-bg-"+c);
+      const fill2=document.getElementById("bat-fill-"+c);
+      bg2.setAttribute("x",x);bg2.setAttribute("y",y);bg2.setAttribute("width",W);
+      fill2.setAttribute("x",x);fill2.setAttribute("y",y);
+      fill2.setAttribute("width",Math.max(1,W*soc));
+      fill2.setAttribute("fill",batSoCCol(soc));
+      batInd.style.display="";
+    } else if(batInd){batInd.style.display="none";}
+  });
+  const su=document.getElementById("s-util"),so=document.getElementById("s-over");
+  su.textContent=Math.round(res.maxUtil*100)+"%";
+  su.style.color=res.maxUtil>1?"var(--bad)":res.maxUtil>0.6?"var(--warn)":"var(--ok)";
+  so.textContent=res.nOver;
+  so.style.color=res.nOver?"var(--bad)":"var(--ok)";
+  document.getElementById("s-loop").textContent=(res.loop/1000).toFixed(1);
+  const dcEl=document.getElementById("s-dc");
+  const dcKEl=document.getElementById("s-dc-k");
+  if(res.nIslands>4){
+    dcEl.textContent=res.nIslands+" "+T("s_islands");
+    dcEl.style.color="var(--bad)";
+    dcKEl.textContent=T("s_split");
+  }else{
+    dcEl.textContent=(res.dcTot/1000).toFixed(1)+" GW";
+    dcEl.style.color="";
+    dcKEl.textContent=T("s_dc");
+  }
+  const fl=[...res.flows].sort((a,b)=>b.util-a.util).slice(0,10);
+  document.getElementById("flowlist").innerHTML=fl.map(f=>{
+    const c=utilColor(f);
+    const tag=f.kind==="DC"?` <span class="dctag">DC${f.label?" · "+f.label:""}</span>`:"";
+    return `<div class="fr"><span><span class="dot" style="background:${c}"></span>`+
+      `${f.from} → ${f.to}${tag}</span>`+
+      `<span class="rt">${Math.round(f.abs)} MW · ${Math.round(f.util*100)}%</span></div>`;
+  }).join("");
+}
+
+function tick(){
+  anim+=1;
+  for(const k in edgeEls){
+    const fl=edgeEls[k].flow,sp=parseFloat(fl.dataset.speed||0);
+    if(sp===0)continue;
+    const dir=parseFloat(fl.dataset.dir||"-1");
+    const period=parseFloat(fl.getAttribute("stroke-dasharray")||"12").split
+      ?fl.getAttribute("stroke-dasharray").split(" ").reduce((a,b)=>+a + +b,0):12;
+    fl.setAttribute("stroke-dashoffset",(anim*sp*dir)%period);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ── Frequency ── */
+const FREQ_LAMBDA={CE:15000,N:6000,GB:2500,IE:450};
+function freqStatus(dev){
+  if(dev>=1500)return["collapse",T("freq_collapse")];
+  if(dev>=200) return["emergency",T("freq_hiemerg")];
+  if(dev>=100) return["alert",T("freq_hi")];
+  if(dev>-100) return["normal",T("freq_normal")];
+  if(dev>-200) return["alert",T("freq_lo")];
+  if(dev>-1000)return["emergency",T("freq_fcr")];
+  if(dev>-2500)return["emergency",T("freq_ufls")];
+  return["collapse",T("freq_sys")];
+}
+function computeFrequencies(res){
+  const syncCap={},islCap=isl=>isl.reduce((s,c)=>s+res.zones[c].gen,0);
+  CODES.forEach(c=>{syncCap[ZONES[c].sync]=(syncCap[ZONES[c].sync]||0)+res.zones[c].gen;});
+  const out=res.islands.map(isl=>{
+    const sync=ZONES[isl[0]].sync;
+    const lam=FREQ_LAMBDA[sync]*Math.max(0.02,islCap(isl)/Math.max(1,syncCap[sync]));
+    let dreg=0;
+    isl.forEach(c=>{const ref=BASELINE?BASELINE.zones[c].reg:0;
+      dreg+=res.zones[c].reg-ref;});
+    const hz=50-dreg/lam,dev=(hz-50)*1000;
+    const[code,label]=freqStatus(dev);
+    return{sync,members:isl.slice().sort(),lam,hz:Math.min(52,Math.max(47,hz)),
+      dev,code,label,isIsland:true};
+  });
+  const best={};
+  out.forEach(f=>{if(!best[f.sync]||f.members.length>best[f.sync].members.length)best[f.sync]=f;});
+  Object.values(best).forEach(f=>f.isIsland=false);
+  out.sort((a,b)=>a.sync<b.sync?-1:a.sync>b.sync?1:(a.isIsland?1:-1));
+  return out;
+}
+const FREQCOL={normal:"var(--ok)",alert:"var(--warn)",emergency:"var(--bad)",collapse:"var(--bad)"};
+function renderFrequencies(res){
+  const row=document.getElementById("freqrow");
+  const fr=computeFrequencies(res);
+  const syncNames={CE:T("sync_ce"),N:T("sync_n"),GB:T("sync_gb"),IE:T("sync_ie")};
+  row.innerHTML=fr.map(f=>{
+    const name=f.isIsland?`${T("island")} ${f.members.join("+")}`:syncNames[f.sync];
+    const col=FREQCOL[f.code];
+    const glow=f.code==="collapse"||f.code==="emergency"?`;text-shadow:0 0 8px ${col}`:"";
+    return `<div class="freqchip" title="${f.label} · λ = ${(f.lam/1000).toFixed(1)} GW/Hz">`+
+      `<div class="fk">${name}</div>`+
+      `<div class="fv" style="color:${col}${glow}">${f.hz.toFixed(3)} Hz</div>`+
+      `<div class="fs" style="color:${col}">${f.dev>=0?"+":""}${Math.round(f.dev)} mHz · ${f.label.split(" –")[0].split(" —")[0]}</div></div>`;
+  }).join("");
+}
+
+/* ── EU Power Mix ── */
+let MIXBASE=null;
+function mixNow(){
+  const m={};CATS.forEach(k=>m[k]=0);
+  let load=0,unmod=0;
+  CODES.forEach(c=>{
+    const z=ZONES[c],gs=genShock[c]||{};
+    CATS.forEach(k=>m[k]+=Math.max(0,(z.gen[k]||0)+(gs[k]||0)));
+    load+=z.load+(loadShock[c]||0);
+    unmod+=z.inj||0;
+  });
+  return{m,load,unmod,total:CATS.reduce((s,k)=>s+m[k],0)};
+}
+function renderMix(){
+  const cur=mixNow(),base=MIXBASE||cur;
+  const bar=document.getElementById("mixbar");
+  const leg=document.getElementById("mixlegend");
+  const tot=cur.total+Math.max(0,cur.unmod);
+  bar.innerHTML=CATS.filter(k=>cur.m[k]>0).map(k=>
+    `<div style="flex:${cur.m[k]};background:${CATCOL[k]}" title="${catLabel(k)}"></div>`
+  ).join("")+(cur.unmod>0?`<div style="flex:${cur.unmod};background:#3a4656" title="${T("mix_unmod")}"></div>`:"");
+  let rows=CATS.filter(k=>cur.m[k]>0||base.m[k]>0).map(k=>{
+    const d=cur.m[k]-base.m[k];
+    const dTxt=Math.abs(d)>=100?` <span style="color:${d>0?"var(--ok)":"var(--bad)"}">${d>0?"+":""}${(d/1000).toFixed(1)}</span>`:"";
+    return `<div class="fr"><span><span class="dot" style="background:${CATCOL[k]}"></span>${catLabel(k)}</span>`+
+      `<span class="rt">${(cur.m[k]/1000).toFixed(1)} GW · ${Math.round(cur.m[k]/tot*100)}%${dTxt}</span></div>`;
+  }).join("");
+  if(Math.abs(cur.unmod)>=100)
+    rows+=`<div class="fr"><span><span class="dot" style="background:#3a4656"></span>${T("mix_unmod")}</span>`+
+      `<span class="rt">${(cur.unmod/1000).toFixed(1)} GW</span></div>`;
+  rows+=`<div class="fr" style="border-top:1px solid var(--border2)"><span>${T("mix_sum")}</span>`+
+    `<span class="rt">${(tot/1000).toFixed(0)} / ${(cur.load/1000).toFixed(0)} GW</span></div>`;
+  leg.innerHTML=rows;
+}
+
+/* ── Baseline & Delta ── */
+let BASELINE=null;
+function shocksActive(){
+  return Object.keys(genShock).length>0||Object.keys(loadShock).length>0||
+         Object.keys(lineDerate).length>0||Object.keys(dcSet).length>0;
+}
+function solveBaseline(){
+  const g=genShock,ls=loadShock,ld=lineDerate,dc=dcSet;
+  genShock={};loadShock={};lineDerate={};dcSet={};
+  const r=solve();
+  genShock=g;loadShock=ls;lineDerate=ld;dcSet=dc;
+  return r;
+}
+function refreshBaseline(){BASELINE=solveBaseline();MIXBASE=mixNow_unshocked();}
+function mixNow_unshocked(){const g=genShock,ls=loadShock;genShock={};loadShock={};const m=mixNow();genShock=g;loadShock=ls;return m;}
+
+function renderDeltas(res){
+  const card=document.getElementById("deltacard");
+  const list=document.getElementById("deltalist");
+  if(!shocksActive()||!BASELINE){card.style.display="none";updateAIPanel(false);return;}
+  card.style.display="block";
+  const bmap={};BASELINE.flows.forEach(f=>bmap[f.a+"|"+f.b+"|"+(f.label||"")]=f.flow);
+  const rows=res.flows
+    .map(f=>({f,d:f.flow-(bmap[f.a+"|"+f.b+"|"+(f.label||"")]||0)}))
+    .filter(x=>Math.abs(x.d)>=80)
+    .sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))
+    .slice(0,9);
+  if(!rows.length){
+    list.innerHTML=`<div class="fr"><span style="color:var(--dim2)">${T("delta_none")}</span></div>`;
+    updateAIPanel(true);return;
+  }
+  list.innerHTML=rows.map(x=>{
+    const b0=bmap[x.f.a+"|"+x.f.b+"|"+(x.f.label||"")]||0;
+    const col=x.d>0?"var(--ok)":"var(--bad)";
+    const tag=x.f.kind==="DC"?' <span class="dctag">DC</span>':"";
+    const cut=x.f.cut?` <span style="color:var(--bad)">✂ ${T("delta_cut")}</span>`:"";
+    return `<div class="fr"><span>${x.f.a} ↔ ${x.f.b}${tag}${cut}</span>`+
+      `<span class="rt">${Math.round(b0)} → ${Math.round(x.f.flow)} MW `+
+      `<span style="color:${col}">Δ ${x.d>0?"+":""}${Math.round(x.d)}</span></span></div>`;
+  }).join("");
+  updateAIPanel(true);
+}
+
+/* ── Interaction ── */
+function recompute(){const r=solve();render(r);renderDeltas(r);renderFrequencies(r);renderMix();
+  // Refresh freq-support battery displays
+  for(const c in batteries)if(batteries[c]&&batteries[c].mode==='freq')batFreqDisp(c);
+}
+function selectZone(c){selected={type:"zone",key:c};buildControls();recompute();}
+function selectLine(l){selected={type:"line",key:l};buildControls();recompute();}
+
+function buildControls(){
+  const ctl=document.getElementById("ctl");
+  const head=document.getElementById("ctlhead");
+  if(selected.type==="zone"){
+    const c=selected.key,z=ZONES[c],res=solve(),zr=res.zones[c];
+    head.textContent=`${T("ctl_zone")} · ${c} (${z.sync})`;
+    let h=`<div class="ctl"><div class="selname">${zoneName(c)}</div>`+
+      `<div class="selsub">${T("ctl_sync")} ${z.sync} · `+
+      `${T("ctl_sched")} ${(zr.net/1000>=0?"+":"")}${(zr.net/1000).toFixed(1)} GW · `+
+      `${T("ctl_phys")} ${(zr.phys/1000>=0?"+":"")}${(zr.phys/1000).toFixed(1)} GW (${zr.pos})`+
+      `${Math.abs(zr.reg)>50?` · ${T("ctl_reg")} ${(zr.reg/1000>=0?"+":"")}${(zr.reg/1000).toFixed(1)} GW`:""}</div>`;
+    CATS.filter(k=>z.gen[k]>0).forEach(k=>{
+      const base=z.gen[k],d=(genShock[c]&&genShock[c][k])||0;
+      const rng=Math.max(base,base*1.5,5000);
+      h+=slider(`gen-${c}-${k}`,
+        `<span class="dot" style="background:${CATCOL[k]}"></span>${catLabel(k)}`,
+        -Math.round(base),Math.round(rng),d,`onGen('${c}','${k}',this.value)`);
+    });
+    const dl=loadShock[c]||0;
+    h+=slider(`load-${c}`,T("ctl_load"),-Math.round(z.load*0.5),Math.round(z.load*0.5),dl,
+      `onLoad('${c}',this.value)`);
+    h+="</div>";
+    h+=batPanelHTML(c);  // battery storage panel
+    ctl.innerHTML=h;
+  }else if(selected.type==="line"){
+    const l=selected.key;
+    const f=solve().flows.find(x=>x.a===l[0]&&x.b===l[1]&&x.label===(l[6]||null));
+    if(l[4]==="DC"){
+      head.textContent=`HVDC · ${l[0]}–${l[1]}`;
+      const cur=dcSet[LKEY(l)]!==undefined?dcSet[LKEY(l)]:l[5];
+      let h=`<div class="ctl"><div class="selname">${l[6]||l[0]+"–"+l[1]}</div>`+
+        `<div class="selsub"><span class="dctag">${T("ctl_dc_tag")}</span><br>`+
+        `${T("ctl_sp")} ${cur>=0?"+":""}${Math.round(cur)} MW (+ = ${l[0]}→${l[1]}) · `+
+        `${T("ctl_lim")} ±${l[3]} MW</div>`;
+      h+=`<div class="slrow"><div class="lab"><span>${T("ctl_sp")}</span>`+
+         `<span class="amt" id="amt-dc">${cur>=0?"+":""}${Math.round(cur)} MW</span></div>`+
+         `<input type="range" min="${-l[3]}" max="${l[3]}" step="50" value="${Math.round(cur)}" `+
+         `oninput="onDC('${LKEY(l)}',this.value)"></div>`;
+      h+=`<div class="btnrow" style="padding:4px 0 0">`+
+         `<button onclick="onDC('${LKEY(l)}',0)">${T("ctl_dc_zero")}</button>`+
+         `<button onclick="onDC('${LKEY(l)}',${l[3]})">${T("ctl_dc_fwd")} ${l[0]}→${l[1]}</button>`+
+         `<button onclick="onDC('${LKEY(l)}',${-l[3]})">${T("ctl_dc_rev")} ${l[1]}→${l[0]}</button></div></div>`;
+      ctl.innerHTML=h;
+    }else{
+      head.textContent=`AC · ${l[0]}–${l[1]}`;
+      const der=lineDerate[l[0]+"-"+l[1]]!==undefined?lineDerate[l[0]+"-"+l[1]]:1;
+      let delta="";
+      if(BASELINE){
+        const b=BASELINE.flows.find(x=>x.a===l[0]&&x.b===l[1]&&x.label===(l[6]||null));
+        if(b&&Math.abs(f.flow-b.flow)>20)
+          delta=`<br>${T("ctl_delta")}: ${f.flow-b.flow>0?"+":""}${Math.round(f.flow-b.flow)} MW`;
+      }
+      let h=`<div class="ctl"><div class="selname">${l[0]} ↔ ${l[1]}</div>`+
+        `<div class="selsub">${T("ctl_ac_tag")}<br>`+
+        `${T("ctl_cur")} ${f.from}→${f.to} ${Math.round(f.abs)} MW · `+
+        `<span id="line-util">${Math.round(f.util*100)}% of ${Math.round(f.ntc)} MW`+
+        `${der<1?` (${T("ctl_throt")} ${f.ntcBase} MW)`:""}</span>${delta}</div>`;
+      h+=`<div class="slrow"><div class="lab"><span>${T("ctl_cap")}</span>`+
+         `<span class="amt" id="amt-line">${Math.round(der*100)}%</span></div>`+
+         `<input type="range" min="0" max="100" value="${Math.round(der*100)}" `+
+         `oninput="onLine('${l[0]}','${l[1]}',this.value)"></div>`;
+      h+=`<div class="btnrow" style="padding:4px 0 0">`+
+         `<button onclick="onLine('${l[0]}','${l[1]}',0)">${T("ctl_cut")}</button>`+
+         `<button onclick="onLine('${l[0]}','${l[1]}',100)">${T("ctl_restore")}</button></div></div>`;
+      ctl.innerHTML=h;
+    }
+  }else{
+    head.textContent=T("ctl_head");
+    ctl.innerHTML=`<div class="empty">${T("ctl_empty")}</div>`;
+  }
+}
+
+function slider(id,label,min,max,val,handler){
+  const cls=val>0?"up":val<0?"dn":"";
+  const disp=val===0?"±0":((val>0?"+":"")+(val/1000).toFixed(1)+" GW");
+  return `<div class="slrow"><div class="lab"><span>${label}</span>`+
+    `<span class="amt ${cls}" id="amt-${id}">${disp}</span></div>`+
+    `<input type="range" min="${min}" max="${max}" value="${val}" step="100" oninput="${handler}"></div>`;
+}
+function fmtDelta(v){v=+v;return v===0?"±0":((v>0?"+":"")+(v/1000).toFixed(1)+" GW");}
+function onGen(c,k,v){v=+v;genShock[c]=genShock[c]||{};genShock[c][k]=v;
+  updAmt(`gen-${c}-${k}`,v);recompute();}
+function onLoad(c,v){v=+v;loadShock[c]=v;updAmt(`load-${c}`,v);recompute();}
+function updAmt(id,v){const el=document.getElementById("amt-"+id);if(!el)return;
+  el.textContent=fmtDelta(v);el.className="amt "+(v>0?"up":v<0?"dn":"");}
+function onLine(a,b,pct){lineDerate[a+"-"+b]=(+pct)/100;
+  const el=document.getElementById("amt-line");
+  if(el)el.textContent=Math.round(+pct)+"%";
+  recompute();}
+function onDC(key,mw){dcSet[key]=+mw;
+  const el=document.getElementById("amt-dc");
+  if(el)el.textContent=(mw>=0?"+":"")+Math.round(mw)+" MW";
+  recompute();}
+
+/* ── N-1 Stress Test ── */
+function runN1(){
+  const base=solve();
+  const rows=[];
+  LINES.forEach(l=>{
+    const isDC=l[4]==="DC";
+    if(!isDC&&lineFactor(l)<1e-9)return;
+    let saved;
+    if(isDC){saved=dcSet[LKEY(l)];dcSet[LKEY(l)]=0;}
+    else{saved=lineDerate[l[0]+"-"+l[1]];lineDerate[l[0]+"-"+l[1]]=0;}
+    const r=solve();
+    if(isDC){if(saved===undefined)delete dcSet[LKEY(l)];else dcSet[LKEY(l)]=saved;}
+    else{if(saved===undefined)delete lineDerate[l[0]+"-"+l[1]];else lineDerate[l[0]+"-"+l[1]]=saved;}
+    const newOver=Math.max(0,r.nOver-base.nOver);
+    const split=r.nIslands>base.nIslands;
+    const du=Math.max(0,r.maxUtil-base.maxUtil);
+    rows.push({l,split,newOver,maxUtil:r.maxUtil,severity:(split?1000:0)+10*newOver+100*du});
+  });
+  rows.sort((a,b)=>b.severity-a.severity);
+  return{base,rows,critical:rows.filter(r=>r.split||r.newOver>0).length};
+}
+
+function showN1(){
+  const res=runN1();
+  const card=document.getElementById("n1card");
+  const list=document.getElementById("n1list");
+  const head=document.getElementById("n1head");
+  card.style.display="block";
+  head.textContent=res.critical===0
+    ?T("n1_safe")
+    :`${T("n1_crit")} ${res.critical} ${T("n1_of")} ${res.rows.length} ${T("n1_crit2")}`;
+  list.innerHTML=res.rows.slice(0,12).map((r,i)=>{
+    const l=r.l;
+    const tag=l[4]==="DC"?` <span class="dctag">DC${l[6]?" · "+l[6]:""}</span>`:"";
+    let verdict;
+    if(r.split)verdict=`<span style="color:var(--bad)">${T("n1_island")}</span>`;
+    else if(r.newOver>0)verdict=`<span style="color:var(--bad)">+${r.newOver} ${T("n1_overload")}${r.newOver>1?"s":""}</span>`;
+    else if(r.severity>1)verdict=`<span style="color:var(--warn)">${T("n1_util")} ${Math.round(r.maxUtil*100)}%</span>`;
+    else verdict=`<span style="color:var(--ok)">${T("n1_ok")}</span>`;
+    return `<div class="fr" style="cursor:pointer" onclick="applyOutage(${LINES.indexOf(l)})" title="Click to apply">`+
+      `<span>${i+1}. ${l[0]}–${l[1]}${tag}</span><span class="rt">${verdict}</span></div>`;
+  }).join("");
+}
+function applyOutage(li){
+  const l=LINES[li];
+  if(l[4]==="DC")dcSet[LKEY(l)]=0;else lineDerate[l[0]+"-"+l[1]]=0;
+  selected={type:"line",key:l};buildControls();recompute();
+}
+
+/* ── Scenarios ── */
+function buildScenarios(){
+  document.getElementById("scen-btns").innerHTML=
+    `<button onclick="preset('fr')">${T("scen_fr")}</button>`+
+    `<button onclick="preset('dewind')">${T("scen_wind")}</button>`+
+    `<button onclick="preset('nordlink')">${T("scen_nord")}</button>`+
+    `<button onclick="preset('iberia')">${T("scen_iberia")}</button>`+
+    `<button onclick="preset('flaute')">${T("scen_dark")}</button>`+
+    `<button onclick="preset('baltic')">${T("scen_balt")}</button>`+
+    `<button onclick="preset('transit')" style="border-color:var(--warn);color:var(--warn)">${T("scen_transit")}</button>`;
+  document.getElementById("scen-btns2").innerHTML=
+    `<button onclick="showN1()" style="border-color:var(--cyan);color:var(--cyan)">${T("scen_n1")}</button>`+
+    `<button onclick="openCascade()" style="border-color:var(--bad);color:var(--bad)" id="cas-btn">${T("cas_btn")}</button>`+
+    `<button class="reset" onclick="resetAll()">${T("scen_reset")}</button>`;
+}
+
+function preset(which){
+  resetAll(true);
+  if(which==="fr")genShock.FR={nuclear:-20000};
+  else if(which==="dewind")genShock.DE={wind:+30000};
+  else if(which==="nordlink"){
+    LINES.forEach(l=>{if(l[6]==="NordLink"||l[6]==="North Sea Link")dcSet[LKEY(l)]=0;});
+  }
+  else if(which==="iberia"){lineDerate["FR-ES"]=0;}
+  else if(which==="flaute"){
+    ["DE","AT","NL","BE","PL","FR","ES","DK1","DK2","GB","IE","SE4"].forEach(c=>{
+      if(!ZONES[c])return;
+      genShock[c]={};
+      if(ZONES[c].gen.wind)genShock[c].wind=-Math.round(ZONES[c].gen.wind*0.9);
+      if(ZONES[c].gen.solar)genShock[c].solar=-Math.round(ZONES[c].gen.solar*0.95);
+      loadShock[c]=Math.round(ZONES[c].load*0.08);
+    });
+  }
+  else if(which==="baltic"){
+    lineDerate["PL-LT"]=0;
+    LINES.forEach(l=>{if(l[6]==="NordBalt"||l[6]==="EstLink 1+2")dcSet[LKEY(l)]=0;});
+  }
+  else if(which==="transit"){
+    // Transit flow demo: FR loses ~15 GW nuclear, DE gains ~25 GW wind surplus.
+    // Result: German slack compensates, power transits THROUGH France toward Spain
+    // even though France itself is now a net importer — classic unscheduled loop flow.
+    genShock.FR={nuclear:-15000};
+    genShock.DE={wind:+25000};
+  }
+  selected={type:null,key:null};buildControls();recompute();
+}
+function resetAll(keepSel){
+  genShock={};loadShock={};lineDerate={};dcSet={};
+  cascadeTrips={};cascadeLog=[];
+  document.getElementById('cascadecard').style.display='none';
+  for(const c in batteries){batteries[c].p_manual=0;batteries[c].p_freq=0;}
+  if(!keepSel)selected={type:null,key:null};
+  document.getElementById("aicard").style.display="none";
+  document.getElementById("ai-output").style.display="none";
+  buildControls();recompute();
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   AI LEARNING MODE
+   ══════════════════════════════════════════════════════════════════════ */
+
+const AI_PROVIDERS={
+  anthropic:{
+    name:"Anthropic (Claude)",
+    models:[
+      {id:"claude-haiku-4-5-20251001",label:"Claude Haiku 4.5 — fastest / cheapest"},
+      {id:"claude-sonnet-4-6",        label:"Claude Sonnet 4.6 — balanced"},
+      {id:"claude-opus-4-6",          label:"Claude Opus 4.6 — most capable"},
+    ],
+    hint:"Free API key at console.anthropic.com"
+  },
+  openai:{
+    name:"OpenAI (GPT)",
+    models:[
+      {id:"gpt-4o-mini",label:"GPT-4o mini — fastest / cheapest"},
+      {id:"gpt-4o",     label:"GPT-4o — most capable"},
+    ],
+    hint:"Free API key at platform.openai.com"
+  },
+  google:{
+    name:"Google (Gemini)",
+    models:[
+      {id:"gemini-2.0-flash",label:"Gemini 2.0 Flash — fastest / cheapest"},
+      {id:"gemini-2.5-pro",  label:"Gemini 2.5 Pro — most capable"},
+    ],
+    hint:"Free API key at aistudio.google.com"
+  }
+};
+
+let AI_CFG={provider:"anthropic",model:"claude-haiku-4-5-20251001",level:"beginner"};
+
+function loadAICfg(){
+  try{
+    const s=localStorage.getItem("meridian_ai");
+    if(s)AI_CFG={...AI_CFG,...JSON.parse(s)};
+  }catch(e){}
+}
+function saveAICfgLS(){
+  try{localStorage.setItem("meridian_ai",JSON.stringify(AI_CFG));}catch(e){}
+}
+function getKey(provider){
+  try{return localStorage.getItem("meridian_ai_key_"+provider)||"";}catch(e){return"";}
+}
+function setKey(provider,key){
+  try{localStorage.setItem("meridian_ai_key_"+provider,key);}catch(e){}
+}
+
+function updateAICfgRow(){
+  const prov=AI_PROVIDERS[AI_CFG.provider];
+  const modelLabel=(prov?.models||[]).find(m=>m.id===AI_CFG.model)?.label||AI_CFG.model;
+  const key=getKey(AI_CFG.provider);
+  document.getElementById("ai-cfg-label").textContent=T("ai_cfg")+" ";
+  document.getElementById("ai-cfg-info").textContent=key
+    ?`${prov?.name||AI_CFG.provider} / ${modelLabel.split("—")[0].trim()}`
+    :T("ai_cfg_none");
+  document.getElementById("ai-cfg-info").style.color=key?"var(--cyan)":"var(--dim)";
+  document.getElementById("ai-cfg-link").textContent=T("ai_cfg_link");
+  document.getElementById("ai-explain-btn").textContent=T("ai_explain");
+  document.getElementById("ai-level-lbl").textContent=T("ai_level");
+  document.getElementById("ai-lvl-beg").textContent=T("ai_beg");
+  document.getElementById("ai-lvl-adv").textContent=T("ai_adv");
+}
+
+function updateAIPanel(active){
+  const card=document.getElementById("aicard");
+  card.style.display=active?"block":"none";
+  if(active)updateAICfgRow();
+}
+
+function setAILevel(level){
+  AI_CFG.level=level;saveAICfgLS();
+  document.getElementById("ai-lvl-beg").classList.toggle("active",level==="beginner");
+  document.getElementById("ai-lvl-adv").classList.toggle("active",level==="advanced");
+  // Clear previous explanation on level change
+  const out=document.getElementById("ai-output");
+  out.style.display="none";out.innerHTML="";
+}
+
+function buildExplainPrompt(res){
+  const interventions=[];
+  for(const c in genShock){
+    for(const k in genShock[c]){
+      if(Math.abs(genShock[c][k])>100)
+        interventions.push(`${ZONE_EN[c]||ZONES[c].name} (${c}): ${CATEN[k]} ${genShock[c][k]>0?"+":""}${(genShock[c][k]/1000).toFixed(1)} GW`);
+    }
+  }
+  for(const c in loadShock){
+    if(Math.abs(loadShock[c])>100)
+      interventions.push(`${ZONE_EN[c]||ZONES[c].name} (${c}): Load ${loadShock[c]>0?"+":""}${(loadShock[c]/1000).toFixed(1)} GW`);
+  }
+  for(const k in lineDerate){
+    interventions.push(`Line ${k}: capacity → ${Math.round(lineDerate[k]*100)}%`);
+  }
+  for(const k in dcSet){
+    interventions.push(`HVDC ${k}: setpoint ${dcSet[k]>0?"+":""}${Math.round(dcSet[k])} MW`);
+  }
+
+  const bmap={};
+  if(BASELINE)BASELINE.flows.forEach(f=>bmap[f.a+"|"+f.b+"|"+(f.label||"")]=f.flow);
+  const deltas=res.flows
+    .map(f=>({f,d:f.flow-(bmap[f.a+"|"+f.b+"|"+(f.label||"")]||0)}))
+    .filter(x=>Math.abs(x.d)>=100)
+    .sort((a,b)=>Math.abs(b.d)-Math.abs(a.d))
+    .slice(0,7);
+
+  const freqs=computeFrequencies(res);
+  const overloads=res.flows.filter(f=>f.over).map(f=>`${f.a}–${f.b}: ${Math.round(f.util*100)}%`);
+
+  let prompt=`The user made the following intervention(s) in a real-data EU power grid simulator:\n`;
+  prompt+=interventions.map(i=>`• ${i}`).join("\n")+"\n\n";
+  prompt+=`Top flow changes (DC power flow, Kirchhoff physics):\n`;
+  deltas.forEach(x=>{
+    const b0=bmap[x.f.a+"|"+x.f.b+"|"+(x.f.label||"")]||0;
+    prompt+=`• ${x.f.a}–${x.f.b}${x.f.label?" ("+x.f.label+")":""} [${x.f.kind}]: ${Math.round(b0)} → ${Math.round(x.f.flow)} MW (Δ${x.d>0?"+":""}${Math.round(x.d)} MW)\n`;
+  });
+  const freqStr=freqs.map(f=>`${f.sync}: ${f.hz.toFixed(3)} Hz (${f.dev>=0?"+":""}${Math.round(f.dev)} mHz, ${f.label})`).join("; ");
+  prompt+=`\nFrequency response: ${freqStr}\n`;
+  if(overloads.length)prompt+=`\nOverloaded lines: ${overloads.join(", ")}\n`;
+  if(res.nIslands>4)prompt+=`\nWARNING: Grid split into ${res.nIslands} islands!\n`;
+  return{interventions,prompt};
+}
+
+function buildSystemPrompt(){
+  if(AI_CFG.level==="beginner"){
+    return`You are a friendly energy educator explaining European power grid physics to a curious non-expert. 
+The user is interacting with a real-data EU grid simulator (40 bidding zones, Kirchhoff AC load flow, real ENTSO-E data).
+Use vivid analogies (water pipes, traffic, dominos). Avoid jargon — if you must use a technical term, immediately define it.
+Structure your answer in 3 short paragraphs: 1) What happened and where. 2) Why — the physical reason (Kirchhoff, supply/demand). 3) What it means for real life (prices, stability, security of supply).
+Keep it under 200 words. Be concrete: reference the actual MW numbers and country codes from the data.
+Important: if the data shows flow going FROM a zone that is a net importer (e.g. power flowing FR→ES even though France lost generation), highlight this as a "transit flow" or "unscheduled flow" — this counterintuitive physics is a key teaching moment.`;
+  }else{
+    return`You are a power systems engineer explaining DC load flow results to an engineering student.
+The simulator uses a zonal DC load flow model (B-matrix, distributed slack per synchronous zone, HVDC as fixed injection).
+Data is calibrated against ENTSO-E A11 physical cross-border flows; susceptances are fitted iteratively.
+Explain: 1) The load flow redistribution (Kirchhoff's current law, susceptance-weighted power sharing). 
+2) The frequency response (Δf = −ΔP/λ, primary regulation, FCR, island formation). 
+3) N-1 security implications if relevant.
+Use proper notation (MW, pu susceptance, mHz). Reference the specific lines, zones, and values from the data. Keep it under 250 words.
+Important: if the data shows a counterintuitive flow direction — e.g. power transiting through a net-importing zone (classic "unscheduled loop flow" or "transit flow") — explain the voltage angle gradient mechanism: θ_DE >> θ_FR > θ_ES due to distributed slack weighting by generation capacity, producing FR→ES flow despite FR's net import position. This is a key real-world phenomenon (ENTSO-E: "unscheduled flows on interconnectors").`;
+  }
+}
+
+async function callAI(systemPrompt,userPrompt){
+  const provider=AI_CFG.provider;
+  const model=AI_CFG.model;
+  const key=getKey(provider);
+  if(!key)throw new Error("No API key configured");
+
+  if(provider==="anthropic"){
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":key,
+        "anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model,max_tokens:600,system:systemPrompt,
+        messages:[{role:"user",content:userPrompt}]})
+    });
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    return d.content[0].text;
+  }
+  if(provider==="openai"){
+    const r=await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+      body:JSON.stringify({model,max_tokens:600,
+        messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}]})
+    });
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    return d.choices[0].message.content;
+  }
+  if(provider==="google"){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:systemPrompt+"\n\n"+userPrompt}]}],
+        generationConfig:{maxOutputTokens:600}})
+    });
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    return d.candidates[0].content.parts[0].text;
+  }
+  throw new Error("Unknown provider: "+provider);
+}
+
+async function explainIntervention(){
+  const btn=document.getElementById("ai-explain-btn");
+  const out=document.getElementById("ai-output");
+  const res=solve();
+  const{interventions,prompt}=buildExplainPrompt(res);
+  if(!interventions.length){out.style.display="block";out.textContent="No active interventions to explain.";return;}
+  btn.disabled=true;
+  out.style.display="block";
+  out.innerHTML=`<span class="ai-loading">${T("ai_loading")}</span>`;
+  try{
+    const text=await callAI(buildSystemPrompt(),prompt);
+    // Format paragraphs
+    out.innerHTML=text.split(/\n\n+/).map(p=>`<p>${p.trim()}</p>`).join("");
+  }catch(e){
+    out.innerHTML=`<span style="color:var(--bad)">Error: ${e.message}</span>`;
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+/* ── AI Settings Modal ── */
+function onProviderChange(){
+  const prov=document.getElementById("ai-provider").value;
+  const sel=document.getElementById("ai-model");
+  const models=AI_PROVIDERS[prov]?.models||[];
+  sel.innerHTML=models.map(m=>`<option value="${m.id}">${m.label}</option>`).join("");
+  document.getElementById("model-hint").textContent=AI_PROVIDERS[prov]?.hint||"";
+  document.getElementById("ai-key").value=getKey(prov);
+}
+
+function openAIModal(){
+  document.getElementById("ai-provider").value=AI_CFG.provider;
+  onProviderChange();
+  // Try to select current model
+  const sel=document.getElementById("ai-model");
+  for(const opt of sel.options){if(opt.value===AI_CFG.model){opt.selected=true;break;}}
+  document.getElementById("ai-key").value=getKey(AI_CFG.provider);
+  // Apply i18n to modal
+  document.getElementById("modal-title").textContent=T("modal_title");
+  document.getElementById("lbl-provider").textContent=T("lbl_provider");
+  document.getElementById("lbl-model").textContent=T("lbl_model");
+  document.getElementById("lbl-key").textContent=T("lbl_key");
+  document.getElementById("lbl-key-hint").textContent=T("lbl_key_hint");
+  document.getElementById("btn-cancel").textContent=T("btn_cancel");
+  document.getElementById("btn-save").textContent=T("btn_save");
+  document.getElementById("ai-modal").classList.add("open");
+}
+function closeAIModal(){document.getElementById("ai-modal").classList.remove("open");}
+function saveAISettings(){
+  AI_CFG.provider=document.getElementById("ai-provider").value;
+  AI_CFG.model=document.getElementById("ai-model").value;
+  setKey(AI_CFG.provider,document.getElementById("ai-key").value.trim());
+  saveAICfgLS();updateAICfgRow();closeAIModal();
+}
+document.getElementById("ai-modal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("ai-modal"))closeAIModal();
+});
+
+/* ── i18n apply ── */
+function setLang(lang){
+  CUR_LANG=lang;
+  document.documentElement.lang=lang;
+  document.getElementById("btn-en").classList.toggle("active",lang==="en");
+  document.getElementById("btn-de").classList.toggle("active",lang==="de");
+  // Static elements with data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.textContent=T(el.dataset.i18n);
+  });
+  // Dynamic headings
+  document.getElementById("hdr-tag").textContent=T("header_tag");
+  document.getElementById("h-freq").textContent=T("h_freq");
+  document.getElementById("hint-freq").textContent=T("hint_freq");
+  document.getElementById("h-mix").textContent=T("h_mix");
+  document.getElementById("h-delta").textContent=T("h_delta");
+  document.getElementById("h-top").textContent=T("h_top");
+  document.getElementById("h-scen").textContent=T("h_scen");
+  document.getElementById("h-ai").textContent=T("h_ai");
+  document.getElementById("hint-n1").textContent=T("hint_n1");
+  document.getElementById("s-util-k").textContent=T("s_util");
+  document.getElementById("s-over-k").textContent=T("s_over");
+  document.getElementById('h-cascade').textContent=T('cas_head');
+  document.getElementById('cascade-clear-btn').textContent=T('cas_clear');
+  const casBtn=document.getElementById('cas-btn');
+  if(casBtn)casBtn.textContent=T('cas_btn');
+  const casThLbl=document.getElementById('cas-thresh-lbl');
+  if(casThLbl)casThLbl.textContent=T('cas_thresh');
+  // Freeze button
+  const fb=document.getElementById("freeze-btn");
+  fb.textContent=LIVE_FROZEN?T("freeze_on"):T("freeze_off");
+  fb.title=LIVE_FROZEN?T("freeze_tip_on"):T("freeze_tip_off");
+  // Rebuild scenarios and dynamic UI
+  buildScenarios();
+  buildDLR();
+  buildControls();
+  recompute();
+  updateAICfgRow();
+  updateLiveBadge();
+  try{localStorage.setItem("meridian_lang",lang);}catch(e){}
+}
+
+/* ── Init ── */
+loadAICfg();
+try{const l=localStorage.getItem("meridian_lang");if(l)CUR_LANG=l;}catch(e){}
+buildSVG();buildScenarios();buildDLR();refreshBaseline();buildControls();recompute();tick();
+loadLive();
+if(window.GRID_LIVE_ENDPOINT)liveInterval=setInterval(loadLive,300000);
+
+function toggleFreeze(){
+  LIVE_FROZEN=!LIVE_FROZEN;
+  const btn=document.getElementById("freeze-btn");
+  if(LIVE_FROZEN){
+    // Cancel scheduled refresh
+    if(liveInterval){clearInterval(liveInterval);liveInterval=null;}
+    btn.textContent=T("freeze_on");
+    btn.title=T("freeze_tip_on");
+    btn.classList.add("frozen");
+    // Show frozen state in live badge
+    const b=document.getElementById("livebadge");
+    b.textContent=(b.textContent||"")+" · ❄";
+  }else{
+    // Resume refresh
+    btn.textContent=T("freeze_off");
+    btn.title=T("freeze_tip_off");
+    btn.classList.remove("frozen");
+    // Immediately fetch fresh data, then restart interval
+    loadLive();
+    if(window.GRID_LIVE_ENDPOINT)liveInterval=setInterval(loadLive,300000);
+  }
+}
+// Apply lang after init so T() works everywhere
+setLang(CUR_LANG);
+</script>
+</body>
+</html>

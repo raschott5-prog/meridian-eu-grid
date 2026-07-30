@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use MERIDIAN Grid in research or teaching, please cite it as below."
+
+title: "MERIDIAN Grid: Real-Data EU Power Grid Simulator"
+abstract: >
+  An open, interactive DC load-flow simulator of the European interconnected
+  power system covering 40 bidding zones, 62 AC interconnectors, and 21 HVDC
+  cables across all four synchronous areas. Fed by real-time ENTSO-E data and
+  calibrated against physically measured cross-border flows (A11). Includes
+  an AI-powered learning mode, N-1 contingency analysis, and quasi-stationary
+  frequency simulation.
+
+version: "2.0"
+date-released: "2025-07-25"
+license: MIT
+url: "https://github.com/raschott5-prog/meridian-eu-grid"
+repository-code: "https://github.com/raschott5-prog/meridian-eu-grid"
+
+authors:
+  - family-names: Schott
+    given-names: Robert
+    alias: raschott5-prog
+    # orcid: "https://orcid.org/0000-0000-0000-0000"  # add if you register at orcid.org
+
+keywords:
+  - power systems
+  - DC load flow
+  - European interconnected grid
+  - ENTSO-E
+  - HVDC
+  - N-1 contingency analysis
+  - frequency regulation
+  - energy education
+  - real-time data
+  - open source
+
+references:
+  - type: data
+    title: "ENTSO-E Transparency Platform"
+    url: "https://transparency.entsoe.eu"
+    notes: >
+      Generation (A75), load (A65), and physical cross-border flows (A11)
+      used under ENTSO-E terms of service with attribution.
