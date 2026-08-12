@@ -16,7 +16,7 @@
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{background:var(--bg);color:var(--text);font-family:var(--mono);
     -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1240px;margin:0 auto;padding:14px}
+  .wrap{max-width:1360px;margin:0 auto;padding:14px}
   header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
     border-bottom:1px solid var(--border2);padding-bottom:10px;margin-bottom:12px}
   header h1{font-size:15px;font-weight:600;letter-spacing:2px}
@@ -40,6 +40,10 @@
     border:1px solid var(--dc);border-radius:2px;background:var(--panel2);
     color:var(--dc);cursor:pointer;transition:.12s}
   .ai-btn:hover{background:rgba(180,140,255,.12)}
+  .mb-btn{font-family:var(--mono);font-size:9px;letter-spacing:.5px;padding:3px 9px;
+    border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .mb-btn:hover{border-color:var(--cyan);color:var(--cyan)}
   .freeze-btn{font-family:var(--mono);font-size:9px;letter-spacing:.5px;padding:3px 9px;
     border:1px solid var(--border2);border-radius:2px;background:var(--panel2);
     color:var(--dim);cursor:pointer;transition:.12s}
@@ -47,9 +51,19 @@
   .freeze-btn.frozen{border-color:#5bb8ff;color:#5bb8ff;background:rgba(91,184,255,.08)}
 
   .layout{display:flex;gap:12px;align-items:flex-start}
-  .mapcol{flex:1 1 620px;min-width:0}
-  .side{flex:0 0 318px;display:flex;flex-direction:column;gap:10px}
-  @media(max-width:900px){.layout{flex-direction:column}.side{flex-basis:auto;width:100%}}
+  .leftcol{flex:0 0 290px;display:flex;flex-direction:column;gap:10px}
+  .mapcol{flex:1 1 480px;min-width:0}
+  .side{flex:0 0 290px;display:flex;flex-direction:column;gap:10px}
+  @media(max-width:1180px){.layout{flex-direction:column}.leftcol,.side{flex-basis:auto;width:100%}}
+
+  .mapcard{position:relative}
+  .fs-btn{position:absolute;top:10px;right:10px;z-index:5;flex:0 0 auto;
+    font-size:9px;padding:5px 9px;display:flex;align-items:center;gap:5px}
+  .mapcard.is-fullscreen{position:fixed;inset:14px;z-index:1000;
+    display:flex;flex-direction:column;background:var(--panel)}
+  .mapcard.is-fullscreen #map{flex:1 1 auto;height:100%}
+
+
 
   .card{background:var(--panel);border:1px solid var(--border);border-radius:3px}
   .card h2{font-size:10px;letter-spacing:1.5px;color:var(--dim);font-weight:600;
@@ -100,6 +114,13 @@
     border-radius:50%;background:var(--text);cursor:pointer;border:2px solid var(--panel)}
   input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
     background:var(--text);cursor:pointer;border:2px solid var(--panel)}
+  .ntc-edit{display:flex;align-items:center;gap:7px;margin-top:2px}
+  .ntc-edit input[type=number]{width:82px;font-family:var(--mono);font-size:11px;
+    background:var(--panel2);border:1px solid var(--border2);border-radius:2px;
+    color:var(--text);padding:4px 6px}
+  .ntc-edit .unit{font-size:10px;color:var(--dim)}
+  .ntc-edit button{margin-left:auto;font-size:9px;padding:4px 8px}
+  .ntc-custom-tag{color:var(--warn)}
   .dot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:middle}
 
   .btnrow{display:flex;flex-wrap:wrap;gap:5px;padding:9px 11px}
@@ -110,9 +131,13 @@
   button.reset{color:var(--dim)}button.reset:hover{border-color:var(--bad);color:var(--bad)}
 
   .flowlist{max-height:170px;overflow-y:auto;font-size:10px}
-  .flowlist .fr{display:flex;justify-content:space-between;padding:4px 11px;
-    border-bottom:1px solid var(--panel2)}
-  .flowlist .fr .rt{color:var(--dim);font-variant-numeric:tabular-nums}
+  #flowlist{max-height:280px}
+  .flowlist .fr{display:flex;justify-content:space-between;align-items:baseline;
+    gap:8px;padding:4px 11px;border-bottom:1px solid var(--panel2)}
+  .flowlist .fr>span:first-child{overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;min-width:0}
+  .flowlist .fr .rt{color:var(--dim);font-variant-numeric:tabular-nums;
+    flex:0 0 auto;white-space:nowrap}
   .flowlist::-webkit-scrollbar{width:6px}
   .flowlist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
   .dctag{color:var(--dc);font-size:8.5px;letter-spacing:.5px}
@@ -193,6 +218,20 @@
   .dlr-preset:hover{border-color:var(--text);color:var(--text)}
   .dlr-preset.active{border-color:var(--cyan);color:var(--cyan);
     background:rgba(53,201,208,.07)}
+  .wx-toggle-row{display:flex;gap:5px;padding:0 11px 6px}
+  .wx-toggle{font-family:var(--mono);font-size:9.5px;letter-spacing:.5px;flex:1 1 auto;
+    padding:6px 8px;border:1px solid var(--border2);border-radius:3px;
+    background:var(--panel2);color:var(--dim);cursor:pointer;transition:.12s}
+  .wx-toggle:hover{border-color:var(--cyan);color:var(--cyan)}
+  .wx-toggle.on{border-color:var(--ok);color:var(--ok);background:rgba(61,220,132,.08)}
+  .wx-refresh{font-family:var(--mono);font-size:12px;flex:0 0 auto;padding:4px 9px;
+    border:1px solid var(--border2);border-radius:3px;background:var(--panel2);
+    color:var(--dim);cursor:pointer;transition:.12s}
+  .wx-refresh:hover{border-color:var(--cyan);color:var(--cyan)}
+  .wx-status{font-size:9px;color:var(--dim2);padding:0 11px 8px;text-align:center;
+    letter-spacing:.3px;min-height:12px}
+  .wx-status.err{color:var(--bad)}
+  .wx-status.loading{color:var(--warn)}
   /* ── Cascade Simulation ── */
   .cascade-step{padding:6px 11px;border-bottom:1px solid var(--panel2);font-size:10px}
   .cascade-step .cs-head{display:flex;justify-content:space-between;margin-bottom:2px}
@@ -230,6 +269,27 @@
   .modal-btns .save{border-color:var(--cyan);color:var(--cyan)}
   .modal-btns .save:hover{background:rgba(53,201,208,.1)}
   .provider-models{margin-top:6px;font-size:9px;color:var(--dim2);line-height:1.6}
+  .mb-modal{width:600px}
+  .mb-intro{font-size:11px;color:var(--text);line-height:1.6;margin-bottom:16px;
+    padding-bottom:14px;border-bottom:1px solid var(--border2)}
+  .mb-sec{margin-bottom:16px}
+  .mb-sec-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .mb-sec-head .t{font-size:11px;font-weight:600;color:var(--cyan);letter-spacing:.5px}
+  .mb-tag{font-family:var(--mono);font-size:8px;letter-spacing:.5px;padding:2px 6px;
+    border-radius:2px;text-transform:uppercase;white-space:nowrap}
+  .mb-tag.measured{background:rgba(61,220,132,.14);color:var(--ok);border:1px solid rgba(61,220,132,.4)}
+  .mb-tag.modelled{background:rgba(91,184,255,.13);color:#5bb8ff;border:1px solid rgba(91,184,255,.4)}
+  .mb-tag.didactic{background:rgba(180,140,255,.13);color:var(--dc);border:1px solid rgba(180,140,255,.4)}
+  .mb-sec ul{list-style:none;margin:0;padding:0}
+  .mb-sec li{font-size:10.5px;color:var(--dim);line-height:1.55;padding:2px 0 2px 14px;
+    position:relative}
+  .mb-sec li::before{content:"–";position:absolute;left:0;color:var(--dim2)}
+  .mb-sec li b{color:var(--text);font-weight:600}
+  .mb-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:9px;color:var(--dim);
+    margin:4px 0 16px;padding-bottom:14px;border-bottom:1px solid var(--border2)}
+  .mb-legend span{display:flex;align-items:center;gap:5px}
+  .mb-foot{font-size:9.5px;color:var(--dim2);line-height:1.6;
+    padding-top:14px;border-top:1px solid var(--border2)}
 </style>
 </head>
 <body>
@@ -242,13 +302,48 @@
       <button class="freeze-btn" id="freeze-btn" onclick="toggleFreeze()">⏸ FREEZE</button>
       <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
       <button class="lang-btn" id="btn-de" onclick="setLang('de')">DE</button>
+      <button class="lang-btn" id="btn-pt" onclick="setLang('pt')">PT</button>
+      <button class="mb-btn" id="mb-btn" onclick="openBoundaries()">ⓘ MODEL BOUNDARIES</button>
       <button class="ai-btn" onclick="openAIModal()">⚙ AI MODE</button>
     </div>
   </header>
 
   <div class="layout">
-    <div class="mapcol">
+    <div class="leftcol">
       <div class="card">
+        <h2 id="h-top">MOST LOADED CONNECTIONS</h2>
+        <div class="flowlist" id="flowlist"></div>
+        <div class="colorkey">
+          <span><span class="dot" style="background:var(--ok)"></span><span data-i18n="ck_low">&lt;60% NTC</span></span>
+          <span><span class="dot" style="background:var(--warn)"></span>60–100%</span>
+          <span><span class="dot" style="background:var(--bad)"></span><span data-i18n="ck_over">&gt;100%</span></span>
+          <span><span class="dot" style="background:var(--dc)"></span><span data-i18n="ck_dc">HVDC (scheduled)</span></span>
+          <span style="color:var(--dim2)" data-i18n="ck_def">dashed border = model default</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2 id="h-dlr">WEATHER / DLR</h2>
+        <div class="dlr-factor ok" id="dlr-factor-disp">×1.00</div>
+        <div class="dlr-sub" id="dlr-sub">AC line capacity at reference conditions</div>
+        <div class="wx-toggle-row">
+          <button class="wx-toggle" id="wx-toggle-btn" onclick="toggleLiveWeather()">◯ LIVE WEATHER</button>
+          <button class="wx-refresh" id="wx-refresh-btn" onclick="refreshWeather()" title="Refresh" style="display:none">⟳</button>
+        </div>
+        <div class="wx-status" id="wx-status"></div>
+        <div class="dlr-sliders" id="dlr-sliders"></div>
+        <div class="dlr-presets" id="dlr-presets"></div>
+      </div>
+      <div class="card" id="n1card" style="display:none">
+        <h2 id="n1head">N-1 STRESS TEST</h2>
+        <div class="flowlist" id="n1list" style="max-height:230px"></div>
+        <div class="hint" id="hint-n1">Computes on the current state — including
+        your shocks and A11 calibration. Click an entry to apply the outage.</div>
+      </div>
+    </div>
+
+    <div class="mapcol">
+      <div class="card mapcard">
+        <button class="fs-btn" id="fs-btn" onclick="toggleMapFullscreen()" title="Fullscreen">⛶ <span id="fs-btn-lbl">FULLSCREEN</span></button>
         <svg id="map" viewBox="0 0 720 800" preserveAspectRatio="xMidYMid meet"
              aria-label="Interactive EU power grid map"></svg>
       </div>
@@ -304,45 +399,18 @@
         <div class="flowlist" id="cascadelist" style="max-height:300px"></div>
         <button class="cascade-clear" id="cascade-clear-btn" onclick="clearCascade()">■ CLEAR CASCADE</button>
       </div>
-
-      <div class="card" style="margin-top:10px">
-        <h2 id="h-top">MOST LOADED CONNECTIONS</h2>
-        <div class="flowlist" id="flowlist"></div>
-        <div class="colorkey">
-          <span><span class="dot" style="background:var(--ok)"></span><span data-i18n="ck_low">&lt;60% NTC</span></span>
-          <span><span class="dot" style="background:var(--warn)"></span>60–100%</span>
-          <span><span class="dot" style="background:var(--bad)"></span><span data-i18n="ck_over">&gt;100%</span></span>
-          <span><span class="dot" style="background:var(--dc)"></span><span data-i18n="ck_dc">HVDC (scheduled)</span></span>
-          <span style="color:var(--dim2)" data-i18n="ck_def">dashed border = model default</span>
-        </div>
-      </div>
     </div>
 
     <div class="side">
       <div class="card">
-        <h2 id="h-dlr">WEATHER / DLR</h2>
-        <div class="dlr-factor ok" id="dlr-factor-disp">×1.00</div>
-        <div class="dlr-sub" id="dlr-sub">AC line capacity at reference conditions</div>
-        <div class="dlr-sliders" id="dlr-sliders"></div>
-        <div class="dlr-presets" id="dlr-presets"></div>
+        <h2 id="ctlhead">CONTROLS</h2>
+        <div id="ctl"></div>
       </div>
 
       <div class="card">
         <h2 id="h-scen">SCENARIOS</h2>
         <div class="btnrow" id="scen-btns"></div>
         <div class="btnrow" style="padding-top:0" id="scen-btns2"></div>
-      </div>
-
-      <div class="card" id="n1card" style="display:none">
-        <h2 id="n1head">N-1 STRESS TEST</h2>
-        <div class="flowlist" id="n1list" style="max-height:230px"></div>
-        <div class="hint" id="hint-n1">Computes on the current state — including
-        your shocks and A11 calibration. Click an entry to apply the outage.</div>
-      </div>
-
-      <div class="card">
-        <h2 id="ctlhead">CONTROLS</h2>
-        <div id="ctl"></div>
       </div>
 
       <div class="card">
@@ -392,10 +460,23 @@
   </div>
 </div>
 
+<!-- Model Boundaries Modal -->
+<div class="modal-overlay" id="mb-modal">
+  <div class="modal mb-modal">
+    <h3 id="mb-title">MODEL BOUNDARIES &amp; ASSUMPTIONS</h3>
+    <div class="mb-intro" id="mb-intro"></div>
+    <div id="mb-body"></div>
+    <div class="mb-foot" id="mb-foot"></div>
+    <div class="modal-btns">
+      <button class="save" onclick="closeBoundaries()" id="mb-close">CLOSE</button>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
 /* ══════════════════════════════════════════════════════════════════════
-   MERIDIAN GRID v2 — EU Interconnected Grid (JS port of meridian_grid.py)
+   MERIDIAN GRID v2.1 — EU Interconnected Grid (JS port of meridian_grid.py)
    4 synchronous zones, AC follows Kirchhoff, DC follows schedule.
    ══════════════════════════════════════════════════════════════════════ */
 
@@ -464,6 +545,7 @@ const STRINGS = {
     n1_crit2:     "contingencies critical",
     n1_island:    "ISLANDING",
     n1_overload:  "Overload",
+    n1_overload_pl: "Overloads",
     n1_util:      "Utilisation →",
     n1_ok:        "non-critical",
     ctl_head:     "CONTROLS",
@@ -485,6 +567,20 @@ const STRINGS = {
     ctl_cap:      "Available capacity",
     ctl_cut:      "CUT LINE",
     ctl_restore:  "RESTORE",
+    ctl_ntc:      "Nominal capacity (NTC)",
+    ctl_ntc_reset:"DEFAULT",
+    ctl_ntc_custom:"custom",
+    ct_type:      "Conductor type",
+    ct_factor:    "DLR factor",
+    ct_manual:    "manual",
+    ct_live:      "live",
+    ct_whatif:    "what-if",
+    ct_calib:     "A11-calibrated",
+    ct_calib_hint:"Live weather is not applied here — the A11-measured NTC already reflects real conditions.",
+    ct_a:         "380 kV overhead",
+    ct_b:         "220 kV overhead",
+    ct_c:         "110 kV overhead",
+    ct_d:         "underground cable",
     ctl_empty:    'Click a <b style="color:var(--text)">zone</b>, an <b style="color:var(--text)">AC line</b> or an <b style="color:var(--dc)">HVDC cable</b> on the map.',
     ctl_delta:    "Δ vs. unperturbed grid",
     scen_fr:      "FR −20 GW Nuclear",
@@ -508,6 +604,8 @@ const STRINGS = {
     freeze_on:    "❄ FROZEN",
     freeze_tip_off: "Pause live data refresh — useful during teaching or presentations",
     freeze_tip_on:  "Live data refresh is paused. Click to resume.",
+    fs_enter:     "FULLSCREEN",
+    fs_exit:      "EXIT FULLSCREEN",
     bat_add:      "+ ADD BATTERY STORAGE",
     dlr_head:     "WEATHER / DLR",
     dlr_sub_ref:  "AC line capacity at reference conditions",
@@ -520,6 +618,71 @@ const STRINGS = {
     dlr_standard: "◎ Standard",
     dlr_winter:   "❄ Winter",
     dlr_storm:    "⛈ Storm",
+    wx_live:      "LIVE WEATHER",
+    wx_loading:   "loading weather…",
+    wx_manual_hint:"manual sliders — one weather for all lines",
+    wx_active:    "live · {n} lines",
+    wx_err:       "Weather could not be loaded.",
+    mb_title:     "MODEL BOUNDARIES & ASSUMPTIONS",
+    mb_btn:       "ⓘ MODEL BOUNDARIES",
+    mb_intro:     "MERIDIAN Grid is a <b>teaching and what-if model</b>, not an operational planning tool. It combines real ENTSO-E data with a simplified physical model. Numbers show the <b>direction and rough magnitude</b> of effects — they are not operational forecasts. Below is what each part does and where its limits are.",
+    mb_measured:  "measured",
+    mb_measured_d:"real ENTSO-E data",
+    mb_modelled:  "modelled",
+    mb_modelled_d:"computed by the model",
+    mb_didactic:  "didactic",
+    mb_didactic_d:"illustrative, not dynamic",
+    mb_powerflow: "Load flow (AC)",
+    mb_powerflow_items:[
+      "<b>Zonal DC load flow</b> — each node is a bidding zone, not a substation. A linear approximation of AC physics (Kirchhoff), not a full AC optimal power flow.",
+      "No reactive power, no voltage, no angle stability, no thermal time constants.",
+      "Appropriate for showing flows, congestion and redistribution; not for engineering-grade planning."
+    ],
+    mb_calib:     "A11 calibration",
+    mb_calib_items:[
+      "Susceptances and NTC limits are fitted against ENTSO-E <b>A11 measured physical cross-border flows</b>.",
+      "Learned NTC limits only ever rise (monotonic), and persist across refreshes.",
+      "This is the one part anchored directly in real measurements — hence the <b>measured</b> tag."
+    ],
+    mb_hvdc:      "HVDC cables",
+    mb_hvdc_items:[
+      "Modelled as <b>schedule, not physics</b>: a set-point flows regardless of the surrounding AC state — a wire with a switch.",
+      "Real HVDC control is more complex; this captures the key teaching point that HVDC flow is dispatched, not Kirchhoff-driven."
+    ],
+    mb_dlr:       "Dynamic Line Rating (weather)",
+    mb_dlr_items:[
+      "Steady-state thermal balance after <b>CIGRE 601 / IEEE 738</b>, per standardised conductor type (A–D). Types are <b>standardised, not asset-specific</b> — we don't have real conductor data.",
+      "Raw thermal span is damped to the empirically usable TSO range (~0.7–1.5×); this is a documented simplification.",
+      "Wind is lifted from 10 m to an assumed 30 m conductor height via a power law; real height, roughness and terrain are unknown.",
+      "No thermal inertia (steady-state only). On A11-calibrated lines DLR is suppressed to avoid double-counting weather."
+    ],
+    mb_freq:      "Frequency per sync zone",
+    mb_freq_items:[
+      "<b>Quasi-stationary</b> deviation after primary control: Δf = −ΔP/λ, per island. A single end-state number, <b>not a time-domain simulation</b>.",
+      "No inertia dynamics, no FCR/aFRR/mFRR detail. Below 49 Hz real load shedding would act; the model keeps computing statically."
+    ],
+    mb_cascade:   "Cascade simulation",
+    mb_cascade_items:[
+      "Iterative: trip lines above the threshold, re-solve, repeat until stable, split or max steps.",
+      "<b>No real protection logic</b>, relay settings, reclosing or redispatch during the event. Shows the mechanism of cascade risk, not a specific real blackout."
+    ],
+    mb_n1:        "N-1 stress test",
+    mb_n1_items:[
+      "Static recomputation of single outages on the current state (incl. shocks and calibration).",
+      "Not a full TSO N-1 study — no protection/controller detail."
+    ],
+    mb_storage:   "Battery storage",
+    mb_storage_items:[
+      "Static model with SoC limits and a simple droop (5% / full power at ±200 mHz).",
+      "No degradation, no real time-series, no operational limits beyond SoC."
+    ],
+    mb_ai:        "AI learning mode",
+    mb_ai_items:[
+      "Optional explanations via your own API key (kept in your browser only).",
+      "<b>Answers are not fact-checked by the tool</b> — quality depends on the provider and prompt. Treat as a study aid, not authoritative."
+    ],
+    mb_foot:      "Data: ENTSO-E Transparency Platform · Model: zonal DC load flow, A11-calibrated · <b>not operational data</b>. Source, methodology and the full known-limitations table are in the project README.",
+    mb_close:     "CLOSE",
     cas_head:     "CASCADE SIMULATION",
     cas_btn:      "⚡ CASCADE",
     cas_thresh:   "Trip threshold:",
@@ -616,7 +779,8 @@ const STRINGS = {
     n1_of:        "von",
     n1_crit2:     "Ausfällen kritisch",
     n1_island:    "INSELBILDUNG",
-    n1_overload:  "Overload",
+    n1_overload:  "Überlast",
+    n1_overload_pl: "Überlasten",
     n1_util:      "Auslastung →",
     n1_ok:        "unkritisch",
     ctl_head:     "MANIPULATION",
@@ -638,6 +802,20 @@ const STRINGS = {
     ctl_cap:      "Verfügbare Kapazität",
     ctl_cut:      "LEITUNG KAPPEN",
     ctl_restore:  "WIEDERHERSTELLEN",
+    ctl_ntc:      "Nennkapazität (NTC)",
+    ctl_ntc_reset:"STANDARD",
+    ctl_ntc_custom:"angepasst",
+    ct_type:      "Leitertyp",
+    ct_factor:    "DLR-Faktor",
+    ct_manual:    "manuell",
+    ct_live:      "live",
+    ct_whatif:    "Szenario",
+    ct_calib:     "A11-kalibriert",
+    ct_calib_hint:"Live-Wetter wirkt hier nicht — die A11-gemessene NTC bildet die realen Bedingungen bereits ab.",
+    ct_a:         "380-kV-Freileitung",
+    ct_b:         "220-kV-Freileitung",
+    ct_c:         "110-kV-Freileitung",
+    ct_d:         "Erdkabel",
     ctl_empty:    'Klicke eine <b style="color:var(--text)">Zone</b>, eine <b style="color:var(--text)">AC-Leitung</b> oder ein <b style="color:var(--dc)">HVDC-Kabel</b> auf der Karte.',
     ctl_delta:    "Δ zum ungestörten Netz",
     scen_fr:      "FR −20 GW AKW",
@@ -661,6 +839,8 @@ const STRINGS = {
     freeze_on:    "❄ EINGEFROREN",
     freeze_tip_off: "Live-Daten pausieren — für Unterricht und Präsentationen",
     freeze_tip_on:  "Live-Aktualisierung pausiert. Klicken zum Fortsetzen.",
+    fs_enter:     "VOLLBILD",
+    fs_exit:      "VOLLBILD BEENDEN",
     bat_add:      "+ BATTERIESPEICHER HINZUFÜGEN",
     dlr_head:     "WETTER / DLR",
     dlr_sub_ref:  "AC-Leitungskapazität bei Referenzbedingungen",
@@ -673,6 +853,71 @@ const STRINGS = {
     dlr_standard: "◎ Standard",
     dlr_winter:   "❄ Winter",
     dlr_storm:    "⛈ Sturm",
+    wx_live:      "LIVE-WETTER",
+    wx_loading:   "lade Wetter…",
+    wx_manual_hint:"manuelle Regler — ein Wetter für alle Leitungen",
+    wx_active:    "live · {n} Leitungen",
+    wx_err:       "Wetter konnte nicht geladen werden.",
+    mb_title:     "MODELLGRENZEN & ANNAHMEN",
+    mb_btn:       "ⓘ MODELLGRENZEN",
+    mb_intro:     "MERIDIAN Grid ist ein <b>Lehr- und Was-wäre-wenn-Modell</b>, kein Werkzeug für die operative Netzplanung. Es verbindet echte ENTSO-E-Daten mit einem vereinfachten physikalischen Modell. Die Zahlen zeigen <b>Richtung und grobe Größenordnung</b> von Effekten — sie sind keine operativen Prognosen. Unten steht, was jeder Teil tut und wo seine Grenzen liegen.",
+    mb_measured:  "gemessen",
+    mb_measured_d:"echte ENTSO-E-Daten",
+    mb_modelled:  "modelliert",
+    mb_modelled_d:"vom Modell berechnet",
+    mb_didactic:  "didaktisch",
+    mb_didactic_d:"illustrativ, nicht dynamisch",
+    mb_powerflow: "Lastfluss (AC)",
+    mb_powerflow_items:[
+      "<b>Zonaler DC-Lastfluss</b> — jeder Knoten ist eine Gebotszone, kein Umspannwerk. Eine lineare Näherung der AC-Physik (Kirchhoff), kein vollständiger AC-Optimal-Power-Flow.",
+      "Keine Blindleistung, keine Spannung, keine Winkelstabilität, keine thermischen Zeitkonstanten.",
+      "Geeignet, um Flüsse, Engpässe und Umverteilung zu zeigen; nicht für ingenieurmäßige Planung."
+    ],
+    mb_calib:     "A11-Kalibrierung",
+    mb_calib_items:[
+      "Suszeptanzen und NTC-Grenzen werden gegen ENTSO-E <b>A11-gemessene physikalische Grenzflüsse</b> gefittet.",
+      "Gelernte NTC-Grenzen steigen nur (monoton) und bleiben über Refresh-Zyklen erhalten.",
+      "Dies ist der einzige Teil, der direkt in echten Messungen verankert ist — daher der Tag <b>gemessen</b>."
+    ],
+    mb_hvdc:      "HVDC-Kabel",
+    mb_hvdc_items:[
+      "Modelliert als <b>Fahrplan, nicht Physik</b>: ein Sollwert fließt unabhängig vom umgebenden AC-Zustand — ein Draht mit Schalter.",
+      "Echte HVDC-Regelung ist komplexer; dies erfasst die zentrale Lehraussage, dass HVDC-Fluss disponiert wird, nicht Kirchhoff folgt."
+    ],
+    mb_dlr:       "Dynamic Line Rating (Wetter)",
+    mb_dlr_items:[
+      "Stationäre Wärmebilanz nach <b>CIGRE 601 / IEEE 738</b>, pro standardisiertem Leitertyp (A–D). Die Typen sind <b>standardisiert, nicht asset-spezifisch</b> — echte Leiterdaten liegen nicht vor.",
+      "Der rohe thermische Span wird auf den empirisch nutzbaren TSO-Bereich (~0,7–1,5×) gedämpft; eine dokumentierte Vereinfachung.",
+      "Wind wird von 10 m auf angenommene 30 m Leiterhöhe per Potenzgesetz hochgerechnet; echte Höhe, Rauigkeit und Topografie sind unbekannt.",
+      "Keine thermische Trägheit (nur stationär). Auf A11-kalibrierten Leitungen wird DLR unterdrückt, um Wetter nicht doppelt zu zählen."
+    ],
+    mb_freq:      "Frequenz pro Synchronzone",
+    mb_freq_items:[
+      "<b>Quasistationäre</b> Abweichung nach Primärregelung: Δf = −ΔP/λ, je Insel. Ein einzelner Endzustandswert, <b>keine Zeitbereichssimulation</b>.",
+      "Keine Trägheitsdynamik, kein FCR/aFRR/mFRR-Detail. Unter 49 Hz würde real Lastabwurf greifen; das Modell rechnet statisch weiter."
+    ],
+    mb_cascade:   "Kaskaden-Simulation",
+    mb_cascade_items:[
+      "Iterativ: Leitungen über dem Schwellwert trennen, neu lösen, wiederholen bis stabil, Split oder Max-Schritte.",
+      "<b>Keine echte Schutzlogik</b>, keine Relais-Einstellungen, keine Wiederzuschaltung oder Redispatch während des Ereignisses. Zeigt den Mechanismus des Kaskadenrisikos, keinen konkreten realen Blackout."
+    ],
+    mb_n1:        "N-1-Stresstest",
+    mb_n1_items:[
+      "Statische Nachberechnung einzelner Ausfälle auf dem aktuellen Zustand (inkl. Schocks und Kalibrierung).",
+      "Keine vollständige TSO-N-1-Analyse — kein Schutz-/Reglerdetail."
+    ],
+    mb_storage:   "Batteriespeicher",
+    mb_storage_items:[
+      "Statisches Modell mit SoC-Grenzen und einfacher Droop-Regelung (5% / volle Leistung bei ±200 mHz).",
+      "Keine Degradation, keine echten Zeitreihen, keine Betriebsgrenzen außer SoC."
+    ],
+    mb_ai:        "KI-Lernmodus",
+    mb_ai_items:[
+      "Optionale Erklärungen über deinen eigenen API-Key (nur im Browser gespeichert).",
+      "<b>Antworten werden vom Tool nicht faktengeprüft</b> — die Qualität hängt vom Anbieter und Prompt ab. Als Lernhilfe verstehen, nicht als maßgeblich."
+    ],
+    mb_foot:      "Daten: ENTSO-E Transparency Platform · Modell: zonaler DC-Lastfluss, A11-kalibriert · <b>keine Betriebsdaten</b>. Quelle, Methodik und die vollständige Tabelle bekannter Grenzen stehen im Projekt-README.",
+    mb_close:     "SCHLIESSEN",
     cas_head:     "KASKADEN-SIMULATION",
     cas_btn:      "⚡ KASKADE",
     cas_thresh:   "Auslöse-Schwelle:",
@@ -708,6 +953,243 @@ const STRINGS = {
     lbl_key_hint: "Der Schlüssel wird nur im Browser gespeichert (localStorage). Er wird nirgendwo außer an den Endpunkt des Anbieters gesendet.",
     btn_cancel:   "ABBRECHEN",
     btn_save:     "SPEICHERN & SCHLIESSEN",
+    hint_main:    '→ Erzeugung / Last verschieben.<br><b>Auf eine AC-Leitung klicken</b> → Kapazität drosseln oder kappen. Der Fluss folgt Kirchhoff — niemand steuert ihn.<br><b class="dcw">Auf ein HVDC-Kabel klicken</b> → den Fahrplan-Fluss direkt setzen. Das ist der „Draht mit Schalter": Was gesetzt ist, fließt — Fahrplan statt Physik.',
+  },
+  pt: {
+    header_tag:   "REDE INTERLIGADA DA UE · 4 ZONAS SÍNCRONAS · TRÂNSITO DC",
+    h_freq:       "FREQUÊNCIA DA REDE POR ZONA SÍNCRONA — SIMULADA",
+    hint_freq:    "Desvio quase-estacionário após a regulação primária de frequência: Δf = −ΔP/λ, por ilha. Abaixo de 49,0 Hz atuaria o deslastre real de carga — o modelo continua de forma estática.",
+    h_mix:        "MIX ELÉTRICO DA UE — REAGE ÀS SUAS INTERVENÇÕES",
+    h_delta:      "ALTERAÇÕES DE TRÂNSITO PELAS SUAS INTERVENÇÕES",
+    h_top:        "LIGAÇÕES MAIS CARREGADAS",
+    h_scen:       "CENÁRIOS",
+    h_ai:         "MODO DE APRENDIZAGEM IA",
+    h_ctl:        "CONTROLOS",
+    hint_node:    "Clique num nó",
+    hint_ac:      "Clique numa linha AC",
+    hint_dc:      "Clique num cabo HVDC",
+    hint_src:     "Dados: ENTSO-E Transparency Platform · Modelo: trânsito DC zonal, calibrado A11 · não são dados operacionais",
+    hint_n1:      "Calcula sobre o estado atual — incluindo os seus choques e a calibração A11. Clique numa entrada para aplicar a contingência.",
+    hint_main:    '→ deslocar geração / carga.<br><b>Clique numa linha AC</b> → drenar ou cortar capacidade. O trânsito segue Kirchhoff — ninguém o controla.<br><b class="dcw">Clique num cabo HVDC</b> → definir diretamente o fluxo programado. É o "fio com interruptor": o que se define é o que flui — programa sobre a física.',
+    ck_low:       "<60% NTC",
+    ck_over:      ">100%",
+    ck_dc:        "HVDC (programado)",
+    ck_def:       "contorno tracejado = predefinição do modelo",
+    live_def:     "PREDEFINIÇÕES DO MODELO",
+    live_cal:     "CALIBRADO A11",
+    live_live:    "ENTSO-E AO VIVO",
+    live_fail:    "AO VIVO INDISPONÍVEL — PREDEFINIÇÕES",
+    dq_ok:        "fiável",
+    dq_partial:   "parcial",
+    dq_poor:      "fraca",
+    dq_data:      "QUALIDADE DOS DADOS:",
+    dq_snap:      "Instantâneo da rede",
+    dq_bal:       "balanço aberto",
+    dq_cal:       "fronteiras · ajustadas · erro médio",
+    dq_ntc:       "NTC aumentado",
+    dq_unmeas:    "não medido",
+    dq_unpin:     "não fixado:",
+    s_util:       "UTILIZAÇÃO MÁX.",
+    s_over:       "SOBRECARGAS",
+    s_dc:         "TRANSFERÊNCIA DC",
+    s_split:      "DIVISÃO DA REDE",
+    s_islands:    "ILHAS",
+    sync_ce:      "EUROPA CONTINENTAL",
+    sync_n:       "NÓRDICA",
+    sync_gb:      "GRÃ-BRETANHA",
+    sync_ie:      "IRLANDA",
+    island:       "ILHA",
+    freq_collapse:"COLAPSO — Proteção de geradores (≥51,5 Hz)",
+    freq_hiemerg: "SOBREFREQUÊNCIA — Desligamento de PV (≥50,2 Hz)",
+    freq_hi:      "ELEVADA",
+    freq_normal:  "NORMAL",
+    freq_lo:      "REDUZIDA",
+    freq_fcr:     "CRÍTICO — Limite FCR (≤49,8 Hz)",
+    freq_ufls:    "DESLASTRE DE CARGA — UFLS (≤49,0 Hz)",
+    freq_sys:     "COLAPSO DO SISTEMA (≤47,5 Hz)",
+    mix_unmod:    "não contabilizado (pequenas centrais/externo)",
+    mix_sum:      "Σ Geração / Σ Carga",
+    delta_none:   "Sem redistribuição significativa (<80 MW por linha)",
+    delta_cut:    "cortada",
+    n1_safe:      "TESTE N-1: A REDE É SEGURA EM N-1",
+    n1_crit:      "TESTE N-1:",
+    n1_of:        "de",
+    n1_crit2:     "contingências críticas",
+    n1_island:    "FORMAÇÃO DE ILHA",
+    n1_overload:  "Sobrecarga",
+    n1_overload_pl: "Sobrecargas",
+    n1_util:      "Utilização →",
+    n1_ok:        "não crítica",
+    ctl_head:     "CONTROLOS",
+    ctl_zone:     "Zona",
+    ctl_sync:     "Zona síncrona",
+    ctl_sched:    "Programa",
+    ctl_phys:     "física",
+    ctl_reg:      "Contrib. de regulação",
+    ctl_load:     "Carga",
+    ctl_dc_tag:   "HVDC — programa sobre a física",
+    ctl_sp:       "Valor de referência",
+    ctl_lim:      "Limite",
+    ctl_dc_zero:  "PÔR A ZERO",
+    ctl_dc_fwd:   "TOTAL",
+    ctl_dc_rev:   "TOTAL",
+    ctl_ac_tag:   "AC — o trânsito segue Kirchhoff",
+    ctl_cur:      "atualmente",
+    ctl_throt:    "drenada, total",
+    ctl_cap:      "Capacidade disponível",
+    ctl_cut:      "CORTAR LINHA",
+    ctl_restore:  "REPOR",
+    ctl_ntc:      "Capacidade nominal (NTC)",
+    ctl_ntc_reset:"PREDEFINIÇÃO",
+    ctl_ntc_custom:"personalizado",
+    ct_type:      "Tipo de condutor",
+    ct_factor:    "Fator DLR",
+    ct_manual:    "manual",
+    ct_live:      "ao vivo",
+    ct_whatif:    "cenário",
+    ct_calib:     "calibrado A11",
+    ct_calib_hint:"O clima ao vivo não é aplicado aqui — o NTC medido por A11 já reflete as condições reais.",
+    ct_a:         "linha aérea 380 kV",
+    ct_b:         "linha aérea 220 kV",
+    ct_c:         "linha aérea 110 kV",
+    ct_d:         "cabo subterrâneo",
+    ctl_empty:    'Clique numa <b style="color:var(--text)">zona</b>, numa <b style="color:var(--text)">linha AC</b> ou num <b style="color:var(--dc)">cabo HVDC</b> no mapa.',
+    ctl_delta:    "Δ vs. rede não perturbada",
+    scen_fr:      "FR −20 GW Nuclear",
+    scen_wind:    "DE +30 GW Eólica",
+    scen_nord:    "NordLink + NSL Desl.",
+    scen_iberia:  "Split Ibérico",
+    scen_dark:    "Calmaria Escura",
+    scen_balt:    "Ilhamento Báltico",
+    scen_transit: "⚡ Trânsito: FR↓ + DE Eólica↑",
+    scen_n1:      "▶ TESTE N-1",
+    scen_reset:   "■ REPOR TUDO",
+    ai_level:     "NÍVEL:",
+    ai_beg:       "INICIANTE",
+    ai_adv:       "AVANÇADO",
+    ai_explain:   "▶ EXPLICAR ESTA INTERVENÇÃO",
+    ai_loading:   "A analisar o trânsito de energia…",
+    ai_cfg:       "Fornecedor/Modelo:",
+    ai_cfg_none:  "não configurado",
+    ai_cfg_link:  "definições",
+    freeze_off:   "⏸ CONGELAR",
+    freeze_on:    "❄ CONGELADO",
+    freeze_tip_off: "Pausar a atualização de dados ao vivo — útil no ensino ou em apresentações",
+    freeze_tip_on:  "A atualização de dados ao vivo está em pausa. Clique para retomar.",
+    fs_enter:     "ECRÃ INTEIRO",
+    fs_exit:      "SAIR DO ECRÃ INTEIRO",
+    bat_add:      "+ ADICIONAR ARMAZENAMENTO EM BATERIA",
+    dlr_head:     "CLIMA / DLR",
+    dlr_sub_ref:  "Capacidade da linha AC em condições de referência",
+    dlr_sub:      "Capacidade da linha AC vs. referência",
+    dlr_temp:     "Temp. ambiente",
+    dlr_wind:     "Velocidade do vento",
+    dlr_solar:    "Radiação solar",
+    dlr_heatwave: "🌡 Onda de calor",
+    dlr_summer:   "☀ Verão",
+    dlr_standard: "◎ Padrão",
+    dlr_winter:   "❄ Inverno",
+    dlr_storm:    "⛈ Tempestade",
+    wx_live:      "CLIMA AO VIVO",
+    wx_loading:   "a carregar clima…",
+    wx_manual_hint:"controlos manuais — um clima para todas as linhas",
+    wx_active:    "ao vivo · {n} linhas",
+    wx_err:       "Não foi possível carregar o clima.",
+    mb_title:     "LIMITES E PRESSUPOSTOS DO MODELO",
+    mb_btn:       "ⓘ LIMITES DO MODELO",
+    mb_intro:     "O MERIDIAN Grid é um <b>modelo de ensino e de simulação hipotética</b>, não uma ferramenta de planeamento operacional. Combina dados reais da ENTSO-E com um modelo físico simplificado. Os números mostram a <b>direção e a ordem de grandeza aproximada</b> dos efeitos — não são previsões operacionais. Abaixo está o que cada parte faz e onde estão os seus limites.",
+    mb_measured:  "medido",
+    mb_measured_d:"dados reais ENTSO-E",
+    mb_modelled:  "modelado",
+    mb_modelled_d:"calculado pelo modelo",
+    mb_didactic:  "didático",
+    mb_didactic_d:"ilustrativo, não dinâmico",
+    mb_powerflow: "Trânsito de energia (AC)",
+    mb_powerflow_items:[
+      "<b>Trânsito DC zonal</b> — cada nó é uma zona de mercado, não uma subestação. Uma aproximação linear da física AC (Kirchhoff), não um trânsito ótimo AC completo.",
+      "Sem potência reativa, sem tensão, sem estabilidade angular, sem constantes de tempo térmicas.",
+      "Adequado para mostrar trânsitos, congestionamentos e redistribuição; não para planeamento de nível de engenharia."
+    ],
+    mb_calib:     "Calibração A11",
+    mb_calib_items:[
+      "As susceptâncias e os limites NTC são ajustados face aos <b>trânsitos físicos transfronteiriços medidos A11</b> da ENTSO-E.",
+      "Os limites NTC aprendidos só aumentam (monotónicos) e persistem entre atualizações.",
+      "Esta é a única parte ancorada diretamente em medições reais — daí a etiqueta <b>medido</b>."
+    ],
+    mb_hvdc:      "Cabos HVDC",
+    mb_hvdc_items:[
+      "Modelados como <b>programa, não física</b>: um valor de referência flui independentemente do estado AC envolvente — um fio com interruptor.",
+      "O controlo real de HVDC é mais complexo; isto capta o ponto-chave de ensino de que o fluxo HVDC é despachado, não determinado por Kirchhoff."
+    ],
+    mb_dlr:       "Dynamic Line Rating (clima)",
+    mb_dlr_items:[
+      "Balanço térmico estacionário segundo a <b>CIGRE 601 / IEEE 738</b>, por tipo de condutor normalizado (A–D). Os tipos são <b>normalizados, não específicos do ativo</b> — não temos dados reais dos condutores.",
+      "O intervalo térmico bruto é amortecido para a gama empiricamente utilizável dos ORT (~0,7–1,5×); é uma simplificação documentada.",
+      "O vento é elevado de 10 m para uma altura de condutor assumida de 30 m por lei de potência; a altura, rugosidade e topografia reais são desconhecidas.",
+      "Sem inércia térmica (apenas estacionário). Nas linhas calibradas A11 o DLR é suprimido para evitar a dupla contagem do clima."
+    ],
+    mb_freq:      "Frequência por zona síncrona",
+    mb_freq_items:[
+      "Desvio <b>quase-estacionário</b> após a regulação primária: Δf = −ΔP/λ, por ilha. Um único valor de estado final, <b>não uma simulação no domínio do tempo</b>.",
+      "Sem dinâmica de inércia, sem detalhe FCR/aFRR/mFRR. Abaixo de 49 Hz atuaria o deslastre real de carga; o modelo continua a calcular estaticamente."
+    ],
+    mb_cascade:   "Simulação de cascata",
+    mb_cascade_items:[
+      "Iterativo: desligar linhas acima do limiar, resolver de novo, repetir até estabilizar, dividir ou atingir o máximo de passos.",
+      "<b>Sem lógica de proteção real</b>, sem ajustes de relés, sem religação ou redespacho durante o evento. Mostra o mecanismo do risco de cascata, não um apagão real específico."
+    ],
+    mb_n1:        "Teste de esforço N-1",
+    mb_n1_items:[
+      "Recálculo estático de falhas individuais sobre o estado atual (incl. choques e calibração).",
+      "Não é um estudo N-1 completo de ORT — sem detalhe de proteção/regulação."
+    ],
+    mb_storage:   "Armazenamento em bateria",
+    mb_storage_items:[
+      "Modelo estático com limites de SoC e uma regulação droop simples (5% / potência total a ±200 mHz).",
+      "Sem degradação, sem séries temporais reais, sem limites operacionais além do SoC."
+    ],
+    mb_ai:        "Modo de aprendizagem IA",
+    mb_ai_items:[
+      "Explicações opcionais através da sua própria chave API (guardada apenas no seu navegador).",
+      "<b>As respostas não são verificadas pela ferramenta</b> — a qualidade depende do fornecedor e do prompt. Encare como auxílio de estudo, não como fonte autoritativa."
+    ],
+    mb_foot:      "Dados: ENTSO-E Transparency Platform · Modelo: trânsito DC zonal, calibrado A11 · <b>não são dados operacionais</b>. A fonte, a metodologia e a tabela completa de limitações conhecidas estão no README do projeto.",
+    mb_close:     "FECHAR",
+    cas_head:     "SIMULAÇÃO DE CASCATA",
+    cas_btn:      "⚡ CASCATA",
+    cas_thresh:   "Limiar de disparo:",
+    cas_stable:   "ESTÁVEL — sem mais disparos",
+    cas_island:   "DIVISÃO DA REDE",
+    cas_maxstep:  "MÁXIMO DE PASSOS ATINGIDO",
+    cas_step:     "Passo",
+    cas_tripped:  "disparadas",
+    cas_util:     "util.",
+    cas_islands:  "ilhas",
+    cas_clear:    "■ LIMPAR CASCATA",
+    cas_summary_stable: "linhas disparadas · rede estável",
+    cas_summary_split:  "linhas disparadas · DIVISÃO DA REDE",
+    bat_remove:   "✕ remover",
+    bat_head:     "ARMAZENAMENTO EM BATERIA",
+    bat_cap:      "Capacidade",
+    bat_pmax:     "Potência máx.",
+    bat_soc:      "Estado de carga",
+    bat_pset:     "Ref. de potência",
+    bat_mode_manual: "P MANUAL",
+    bat_mode_freq:   "APOIO DE FREQ.",
+    bat_standby:  "em espera",
+    bat_empty:    "até vazio",
+    bat_full:     "até cheio",
+    bat_crit:     "⚠ quase vazio",
+    bat_droop:    "droop 5% · potência total a ±200 mHz",
+    bat_cur_p:    "P atual:",
+    bat_sign:     "+ descarga · − carga",
+    modal_title:  "MODO DE APRENDIZAGEM IA — DEFINIÇÕES",
+    lbl_provider: "FORNECEDOR IA",
+    lbl_model:    "MODELO",
+    lbl_key:      "CHAVE API",
+    lbl_key_hint: "A chave é guardada apenas no seu navegador (localStorage). Nunca é enviada para outro lado além do endpoint API do fornecedor.",
+    btn_cancel:   "CANCELAR",
+    btn_save:     "GUARDAR E FECHAR",
   }
 };
 function T(k){return(STRINGS[CUR_LANG]||STRINGS.en)[k]||STRINGS.en[k]||k;}
@@ -819,39 +1301,316 @@ function batPanelHTML(c){const b=batteries[c];
     +'</div>';}
 
 /* ══════════════════════════════════════════════════════════════════════
-   DYNAMIC LINE RATING (DLR)
-   Simplified thermal model based on IEEE 738 principles.
-   AC line capacity scales with weather: cool + windy = more capacity,
-   hot + calm + sunny = less. HVDC cables are unaffected (electronically
-   controlled, no sag/thermal limit in the same sense).
+   DYNAMIC LINE RATING (DLR) — steady-state thermal balance
+   ----------------------------------------------------------------------
+   Physics after CIGRE Technical Brochure 601 (2014) / IEEE Std 738-2012.
+   Conductor heat balance:  q_j(I) + q_s = q_c(v,T_amb) + q_r(T_amb)
+     q_j Joule = I²·R(T)   q_s solar = α·S·D
+     q_c convection (forced+natural)   q_r radiation = π·D·ε·σ·(T_c⁴−T_a⁴)
+   Ampacity I_max = √((q_c+q_r−q_s)/R(T_max)); DLR = I_max(now)/I_max(ref).
 
-   Heat balance at rated conductor temperature T_max = 80°C:
-     Cooling: convective = k_conv × v_wind^0.6 × (T_max − T_amb)
-     Heating: solar absorption = α × S_solar
-     I_max ∝ √(cooling − heating)   →   NTC_dlr = NTC_base × DLR_factor
+   Per conductor TYPE (standardised CIGRE-style params, not asset data — the
+   README says so). A mild power-law damping brings the raw thermal span into
+   the empirically usable TSO range (~0.7–1.5×), documented as a teaching
+   simplification. HVDC cables: no DLR (electronically limited).
 
-   Reference calibration point: T=15°C, v=3 m/s, S=200 W/m²  → factor=1.0
+   Two modes:
+     • MANUAL (global sliders): one weather set applies to every AC line —
+       the classic "what-if" knobs, kept for teaching contrast.
+     • LIVE (per-line weather at line midpoint): each line gets its own DLR
+       from real weather — set by the Open-Meteo loader.
    ══════════════════════════════════════════════════════════════════════ */
 
-const DLR_T_MAX   = 80.0;  // rated conductor temperature [°C]
-const DLR_ALPHA   = 0.0035; // solar absorption coefficient [relative]
-const DLR_T_REF   = 15.0;  // reference ambient temperature [°C]
-const DLR_V_REF   = 3.0;   // reference wind speed [m/s]
-const DLR_S_REF   = 200.0; // reference solar irradiance [W/m²]
+const SIGMA_SB = 5.670374419e-8; // Stefan–Boltzmann [W/m²K⁴]
 
+// Conductor type library (standardised, not asset-specific)
+const CONDUCTOR_TYPES = {
+  A: { d:0.0318, R20:6.4e-5,  alphaR:0.00403, Tmax:80, absorp:0.85, emiss:0.85, key:'ct_a' },
+  B: { d:0.0218, R20:1.19e-4, alphaR:0.00403, Tmax:75, absorp:0.85, emiss:0.85, key:'ct_b' },
+  C: { d:0.0153, R20:2.42e-4, alphaR:0.00403, Tmax:70, absorp:0.85, emiss:0.85, key:'ct_c' },
+  D: { d:0.0900, R20:3.0e-5,  alphaR:0.00393, Tmax:65, absorp:0.00, emiss:0.90, key:'ct_d' },
+};
+
+const DLR_T_REF = 15.0, DLR_V_REF = 3.0, DLR_S_REF = 200.0; // reference weather
+const DLR_DAMP  = 0.55; // sensitivity damping to empirical TSO range (documented)
+
+// Global (manual-override) weather state + resulting global factor.
 let DLR = { T: DLR_T_REF, v: DLR_V_REF, S: DLR_S_REF, factor: 1.0, preset: 'standard' };
 
-function _dlrNet(T_amb, v_wind, S_solar) {
-  const v_eff = Math.max(0.5, v_wind); // minimum 0.5 m/s (natural convection)
-  const cooling = Math.pow(v_eff, 0.6) * (DLR_T_MAX - T_amb);
-  const heating = DLR_ALPHA * S_solar;
-  return Math.max(1.0, cooling - heating);
+// Per-line conductor type overrides {LKEY: 'A'|'B'|'C'|'D'} and live per-line
+// weather {LKEY:{T,v,S}}. When DLR_LIVE is true, per-line weather is used;
+// otherwise the global DLR weather applies to all lines.
+let ntcTypeOverride = {};
+let lineWeather = {};
+let DLR_LIVE = false;
+
+function _cR(ty,T){ return ty.R20*(1+ty.alphaR*(T-20)); }
+function _air(Tf){
+  const TfK=Tf+273.15;
+  return { lambda:2.368e-2+7.23e-5*Tf-2.763e-8*Tf*Tf,
+           nu:1.32e-5+9.5e-8*Tf, rho:1.293*273.15/TfK };
+}
+function _conv(ty,Tc,Ta,v){
+  const Tf=0.5*(Tc+Ta), {lambda,nu}=_air(Tf), D=ty.d, dT=Math.max(0,Tc-Ta);
+  const Re=v>0?v*D/nu:0;
+  let Nuf=0;
+  if(Re>0){ let B1,n; if(Re<2650){B1=0.641;n=0.471;}else{B1=0.048;n=0.800;} Nuf=B1*Math.pow(Re,n); }
+  Nuf*=0.77; // effective 45° wind-conductor angle
+  const g=9.81, beta=1/(Tf+273.15);
+  const Gr=(D*D*D)*dT*g*beta/(nu*nu), Pr=0.715-2.5e-4*Tf;
+  let Nun=0; if(Gr*Pr>0) Nun=0.50*Math.pow(Gr*Pr,0.25);
+  return Math.PI*lambda*Math.max(Nuf,Nun)*dT;
+}
+function _rad(ty,Tc,Ta){
+  const a=Tc+273.15,b=Ta+273.15;
+  return Math.PI*ty.d*ty.emiss*SIGMA_SB*(a*a*a*a-b*b*b*b);
+}
+function _solar(ty,S){ return ty.absorp*S*ty.d; }
+function _ampacity(ty,Ta,v,S){
+  const net=_conv(ty,ty.Tmax,Ta,v)+_rad(ty,ty.Tmax,Ta)-_solar(ty,S);
+  if(net<=0) return 0;
+  return Math.sqrt(net/_cR(ty,ty.Tmax));
+}
+// DLR factor for a conductor type under given weather (relative to reference).
+function dlrFactorFor(typeKey,Ta,v,S){
+  const ty=CONDUCTOR_TYPES[typeKey]||CONDUCTOR_TYPES.A;
+  const Iref=_ampacity(ty,DLR_T_REF,DLR_V_REF,DLR_S_REF);
+  if(Iref<=0) return 1.0;
+  const raw=_ampacity(ty,Ta,v,S)/Iref;
+  return Math.max(0.5,Math.min(1.6,Math.pow(raw,DLR_DAMP)));
+}
+// Default conductor type from static NTC when no override is set.
+function defaultLineType(l){
+  if(l[4]==="DC") return null;
+  if(l[7]) return l[7];                 // explicit type in LINES array wins
+  const ntc=l[3];
+  return ntc>=3000?"A":ntc>=1000?"B":"C";
+}
+function lineType(l){
+  const k=LKEY(l);
+  return ntcTypeOverride[k]!==undefined?ntcTypeOverride[k]:defaultLineType(l);
+}
+
+// A line is A11-calibrated when the live calibration has overwritten its NTC
+// from measured physical flows (the original is saved in l._ntc0).
+function isCalibrated(l){ return l._ntc0!==undefined; }
+
+// Is the user actively running a MANUAL weather what-if (sliders/preset moved
+// away from the reference point)? At the reference point the factor is 1.0
+// anyway, so this only matters when the user deliberately dials in a scenario.
+function manualScenarioActive(){
+  if(DLR_LIVE) return false;
+  return Math.abs(DLR.T-DLR_T_REF)>0.01 ||
+         Math.abs(DLR.v-DLR_V_REF)>0.01 ||
+         Math.abs(DLR.S-DLR_S_REF)>0.01;
+}
+
+// The per-line DLR multiplier actually applied in the solver.
+// ── Option A: DLR and A11 calibration are mutually exclusive per line ──
+// The A11-calibrated NTC is an empirical value that ALREADY embeds the weather
+// that was blowing when it was measured. Multiplying a modelled DLR factor on
+// top of it would double-count weather. So:
+//   • HVDC                          → 1.0 (electronically limited, no DLR)
+//   • LIVE weather, calibrated line → 1.0 (real measurement already wins)
+//   • LIVE weather, uncalibrated    → per-line weather factor
+//   • MANUAL at reference           → 1.0 (no-op)
+//   • MANUAL what-if scenario       → factor applies to ALL lines, incl.
+//                                     calibrated ones — the user is explicitly
+//                                     extrapolating beyond current reality
+//                                     ("what if a heatwave hit right now?").
+function lineDLR(l){
+  if(l[4]!=="AC") return 1.0;
+  const ty=lineType(l);
+  const k=LKEY(l);
+  if(DLR_LIVE){
+    if(isCalibrated(l)) return 1.0;            // measurement already includes weather
+    if(lineWeather[k]){
+      const w=lineWeather[k];
+      return dlrFactorFor(ty,w.T,w.v,w.S);
+    }
+    return 1.0;                                // no per-line weather yet → neutral
+  }
+  // MANUAL mode: at reference this is 1.0; a moved slider is an explicit what-if
+  // that intentionally overrides calibration.
+  return dlrFactorFor(ty,DLR.T,DLR.v,DLR.S);
+}
+// Geographic midpoint of a line from its two zone coordinates.
+function lineMidpoint(l){
+  const a=ZONES[l[0]],b=ZONES[l[1]];
+  if(!a||!b) return null;
+  return { lat:(a.lat+b.lat)/2, lon:(a.lon+b.lon)/2 };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIVE WEATHER — Open-Meteo (keyless, CORS-enabled, no registration)
+   ----------------------------------------------------------------------
+   For each AC line we take the geographic midpoint of its two end zones and
+   fetch current temperature, wind speed and global horizontal irradiance.
+   Open-Meteo accepts many coordinates in one request (comma-separated), so
+   all AC lines are fetched in a single batched call — one round trip, no
+   per-line hammering. Results are cached in localStorage for 20 minutes.
+
+   WIND HEIGHT CORRECTION: Open-Meteo wind is at 10 m; conductors hang higher
+   (~30 m). We lift it with the power-law profile v(h)=v10·(h/10)^0.14 (open
+   terrain exponent). Documented simplification — we don't know each line's
+   real conductor height or local roughness.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const OM_CACHE_KEY = "meridian_weather_cache";
+const OM_CACHE_MS  = 20 * 60 * 1000;   // 20 min
+const OM_COND_HEIGHT = 30;             // assumed conductor height [m]
+const OM_WIND_EXP = 0.14;              // power-law exponent (open terrain)
+let   OM_LOADING = false;
+
+// Lift 10 m wind to conductor height.
+function windAtConductor(v10){
+  return v10 * Math.pow(OM_COND_HEIGHT / 10, OM_WIND_EXP);
+}
+
+// Unique AC lines that carry a valid midpoint, with their LKEY + coords.
+function acLinesForWeather(){
+  const out=[];
+  LINES.forEach(l=>{
+    if(l[4]!=="AC") return;
+    const mp=lineMidpoint(l);
+    if(mp) out.push({ key:LKEY(l), lat:+mp.lat.toFixed(3), lon:+mp.lon.toFixed(3) });
+  });
+  return out;
+}
+
+// Parse an Open-Meteo response (single or multi-location) into an array of
+// {T, v10, S} aligned with the request order. Handles both the array form
+// (multiple coords → array of objects) and the single-object form.
+function parseOpenMeteo(json){
+  const arr = Array.isArray(json) ? json : [json];
+  return arr.map(loc=>{
+    const c = loc && loc.current ? loc.current : null;
+    if(!c) return null;
+    const T  = typeof c.temperature_2m==="number" ? c.temperature_2m : null;
+    const v10= typeof c.wind_speed_10m==="number" ? c.wind_speed_10m : null;
+    // shortwave_radiation is W/m² global horizontal; may be absent at night → 0
+    const S  = typeof c.shortwave_radiation==="number" ? c.shortwave_radiation : 0;
+    if(T===null || v10===null) return null;
+    return { T, v10, S };
+  });
+}
+
+// Build lineWeather{} from parsed samples aligned with a line list.
+function applyWeatherSamples(lines, samples){
+  let n=0;
+  lines.forEach((ln,i)=>{
+    const s=samples[i];
+    if(!s) return;
+    lineWeather[ln.key]={ T:s.T, v:windAtConductor(s.v10), S:s.S };
+    n++;
+  });
+  return n;
+}
+
+function readWeatherCache(){
+  try{
+    const raw=localStorage.getItem(OM_CACHE_KEY);
+    if(!raw) return null;
+    const o=JSON.parse(raw);
+    if(!o.ts || Date.now()-o.ts>OM_CACHE_MS) return null;
+    return o;
+  }catch(e){ return null; }
+}
+function writeWeatherCache(weather){
+  try{ localStorage.setItem(OM_CACHE_KEY, JSON.stringify({ ts:Date.now(), weather })); }
+  catch(e){}
+}
+
+// Main entry: load live weather for all AC lines. Returns {ok, n, cached, error}.
+async function loadWeather(force){
+  // Serve fresh cache unless forced
+  if(!force){
+    const c=readWeatherCache();
+    if(c && c.weather){
+      lineWeather=c.weather;
+      return { ok:true, n:Object.keys(c.weather).length, cached:true };
+    }
+  }
+  const lines=acLinesForWeather();
+  if(!lines.length) return { ok:false, n:0, error:"no lines" };
+
+  OM_LOADING=true; updateWeatherStatus();
+  try{
+    const lats=lines.map(l=>l.lat).join(",");
+    const lons=lines.map(l=>l.lon).join(",");
+    const url="https://api.open-meteo.com/v1/forecast"+
+      "?latitude="+lats+"&longitude="+lons+
+      "&current=temperature_2m,wind_speed_10m,shortwave_radiation"+
+      "&wind_speed_unit=ms";
+    const resp=await fetch(url,{ headers:{ "Accept":"application/json" } });
+    if(!resp.ok) throw new Error("HTTP "+resp.status);
+    const json=await resp.json();
+    const samples=parseOpenMeteo(json);
+    if(samples.length!==lines.length)
+      console.warn("weather: sample count "+samples.length+" != lines "+lines.length);
+    const n=applyWeatherSamples(lines, samples);
+    if(n===0) throw new Error("no usable samples");
+    writeWeatherCache(lineWeather);
+    return { ok:true, n, cached:false };
+  }catch(e){
+    // On failure, fall back to any (even stale) cache so the mode still works.
+    const c=readWeatherCache();
+    if(c && c.weather){ lineWeather=c.weather; return { ok:true, n:Object.keys(c.weather).length, cached:true, stale:true }; }
+    return { ok:false, n:0, error:String(e.message||e) };
+  }finally{
+    OM_LOADING=false; updateWeatherStatus();
+  }
+}
+
+// Toggle live-weather mode on/off. When turning on, loads weather (cache first).
+async function toggleLiveWeather(){
+  if(DLR_LIVE){
+    // turn OFF → back to manual sliders
+    DLR_LIVE=false;
+    updateWeatherStatus(); buildDLR(); recompute();
+    return;
+  }
+  DLR_LIVE=true;
+  updateWeatherStatus();
+  const r=await loadWeather(false);
+  if(!r.ok){
+    DLR_LIVE=false;
+    updateWeatherStatus();
+    alert(T("wx_err")+"\n"+(r.error||""));
+    return;
+  }
+  buildDLR(); recompute();
+}
+
+async function refreshWeather(){
+  if(!DLR_LIVE) return;
+  const r=await loadWeather(true);
+  if(r.ok){ buildDLR(); recompute(); }
+}
+
+// Reflect current weather mode in the toggle button + status line.
+function updateWeatherStatus(){
+  const btn=document.getElementById("wx-toggle-btn");
+  const ref=document.getElementById("wx-refresh-btn");
+  const st=document.getElementById("wx-status");
+  if(!btn||!st) return;
+  btn.classList.toggle("on", DLR_LIVE);
+  btn.textContent=(DLR_LIVE?"● ":"◯ ")+T("wx_live");
+  if(ref) ref.style.display=DLR_LIVE?"block":"none";
+  st.className="wx-status";
+  if(OM_LOADING){ st.classList.add("loading"); st.textContent=T("wx_loading"); return; }
+  if(!DLR_LIVE){ st.textContent=T("wx_manual_hint"); return; }
+  const n=Object.keys(lineWeather).length;
+  const c=readWeatherCache();
+  let age="";
+  if(c && c.ts){ const min=Math.round((Date.now()-c.ts)/60000); age=" · "+min+" min"; }
+  st.textContent=T("wx_active").replace("{n}",n)+age;
 }
 
 function computeDLR(T, v, S) {
-  const net_now = _dlrNet(T, v, S);
-  const net_ref = _dlrNet(DLR_T_REF, DLR_V_REF, DLR_S_REF);
-  return Math.max(0.35, Math.min(2.0, Math.sqrt(net_now / net_ref)));
+  // Global factor uses type A as the representative conductor for the headline
+  // "×N.NN" readout; individual lines use their own type via lineDLR().
+  return dlrFactorFor('A', T, v, S);
 }
 
 function setDLR(T, v, S, preset) {
@@ -885,27 +1644,31 @@ const DLR_PRESETS = [
 function buildDLR() {
   document.getElementById('h-dlr').textContent = T('dlr_head');
 
-  // Sliders
+  // Sliders (in live mode they're disabled — weather comes per-line from API)
   const s = document.getElementById('dlr-sliders');
+  const dis = DLR_LIVE ? ' disabled' : '';
   s.innerHTML =
-    _dlrRow('T', T('dlr_temp'),  -20, 45,  DLR.T, DLR.T+'°C',  'onDLRSlider()') +
-    _dlrRow('v', T('dlr_wind'),   0,  15,  DLR.v, DLR.v+' m/s','onDLRSlider()') +
-    _dlrRow('S', T('dlr_solar'),  0, 1000, DLR.S, DLR.S+' W/m²','onDLRSlider()');
+    _dlrRow('T', T('dlr_temp'),  -20, 45,  DLR.T, DLR.T+'°C',  'onDLRSlider()', dis) +
+    _dlrRow('v', T('dlr_wind'),   0,  15,  DLR.v, DLR.v+' m/s','onDLRSlider()', dis) +
+    _dlrRow('S', T('dlr_solar'),  0, 1000, DLR.S, DLR.S+' W/m²','onDLRSlider()', dis);
+  s.style.opacity = DLR_LIVE ? '0.4' : '1';
 
-  // Presets
+  // Presets (also disabled in live mode)
   document.getElementById('dlr-presets').innerHTML = DLR_PRESETS.map(p =>
-    `<button class="dlr-preset${DLR.preset===p.id?' active':''}"
+    `<button class="dlr-preset${DLR.preset===p.id?' active':''}"${dis}
+      style="${DLR_LIVE?'opacity:.4;pointer-events:none':''}"
       onclick="applyDLRPreset('${p.id}')">${T('dlr_'+p.id)}</button>`
   ).join('');
 
   updateDLRDisplay();
+  updateWeatherStatus();
 }
 
-function _dlrRow(id, label, min, max, val, disp, handler) {
+function _dlrRow(id, label, min, max, val, disp, handler, dis) {
   return `<div class="slrow"><div class="lab"><span>${label}</span>
     <span class="amt" id="amt-dlr-${id}">${disp}</span></div>
     <input type="range" id="dlr-${id}" min="${min}" max="${max}" step="${id==='S'?50:id==='v'?0.5:1}"
-      value="${val}" oninput="${handler}"></div>`;
+      value="${val}" oninput="${handler}"${dis||''}></div>`;
 }
 
 function applyDLRPreset(id) {
@@ -1137,7 +1900,8 @@ CODES.forEach(c=>{const g={};CATS.forEach(k=>g[k]=ZONES[c].gen[k]||0);ZONES[c].g
 const LKEY=l=>l[0]+"-"+l[1]+(l[6]?"|"+l[6]:"");
 
 /* ── Shock State ── */
-let genShock={},loadShock={},lineDerate={},dcSet={};
+let genShock={},loadShock={},lineDerate={},dcSet={},ntcOverride={};
+function baseNtc(l){const k=LKEY(l);return ntcOverride[k]!==undefined?ntcOverride[k]:l[3];}
 let selected={type:null,key:null};
 
 function lineFactor(l){
@@ -1158,7 +1922,7 @@ function effGenLoad(c){
 function dcFlow(l){
   const d=lineFactor(l);
   const sp=(dcSet[LKEY(l)]!==undefined?dcSet[LKEY(l)]:l[5])*d;
-  const lim=l[3]*d;
+  const lim=baseNtc(l)*d;
   return Math.max(-lim,Math.min(lim,sp));
 }
 
@@ -1209,10 +1973,11 @@ function solve(){
     let f;
     if(l[4]==="AC")f=l[2]*lineFactor(l)*(theta[idx[l[0]]]-theta[idx[l[1]]]);
     else f=dcF[LKEY(l)];
-    const dlrMult=l[4]==='AC'?DLR.factor:1.0; // DLR scales thermal limit; HVDC unaffected
-    const effNtc=l[3]*lineFactor(l)*dlrMult;
+    const dlrMult=lineDLR(l); // per-line DLR: HVDC→1.0, AC→type+weather specific
+    const nomNtc=baseNtc(l);
+    const effNtc=nomNtc*lineFactor(l)*dlrMult;
     const util=effNtc>1e-9?Math.abs(f)/effNtc:0;
-    return{a:l[0],b:l[1],kind:l[4],label:l[6]||null,ntc:effNtc,ntcBase:l[3],
+    return{a:l[0],b:l[1],kind:l[4],label:l[6]||null,ntc:effNtc,ntcBase:nomNtc,dlr:dlrMult,type:lineType(l),
       flow:f,abs:Math.abs(f),from:f>=0?l[0]:l[1],to:f>=0?l[1]:l[0],
       util,over:util>1.001,cut:effNtc<1e-9};
   });
@@ -1606,13 +2371,14 @@ function renderMix(){
 let BASELINE=null;
 function shocksActive(){
   return Object.keys(genShock).length>0||Object.keys(loadShock).length>0||
-         Object.keys(lineDerate).length>0||Object.keys(dcSet).length>0;
+         Object.keys(lineDerate).length>0||Object.keys(dcSet).length>0||
+         Object.keys(ntcOverride).length>0;
 }
 function solveBaseline(){
-  const g=genShock,ls=loadShock,ld=lineDerate,dc=dcSet;
-  genShock={};loadShock={};lineDerate={};dcSet={};
+  const g=genShock,ls=loadShock,ld=lineDerate,dc=dcSet,no=ntcOverride;
+  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};
   const r=solve();
-  genShock=g;loadShock=ls;lineDerate=ld;dcSet=dc;
+  genShock=g;loadShock=ls;lineDerate=ld;dcSet=dc;ntcOverride=no;
   return r;
 }
 function refreshBaseline(){BASELINE=solveBaseline();MIXBASE=mixNow_unshocked();}
@@ -1681,23 +2447,36 @@ function buildControls(){
     const l=selected.key;
     const f=solve().flows.find(x=>x.a===l[0]&&x.b===l[1]&&x.label===(l[6]||null));
     if(l[4]==="DC"){
+      const key=LKEY(l);
+      const nomNtc=baseNtc(l);
+      const ovDC=ntcOverride[key]!==undefined;
       head.textContent=`HVDC · ${l[0]}–${l[1]}`;
-      const cur=dcSet[LKEY(l)]!==undefined?dcSet[LKEY(l)]:l[5];
+      let cur=dcSet[key]!==undefined?dcSet[key]:l[5];
+      cur=Math.max(-nomNtc,Math.min(nomNtc,cur)); // clamp to current (possibly edited) NTC
       let h=`<div class="ctl"><div class="selname">${l[6]||l[0]+"–"+l[1]}</div>`+
         `<div class="selsub"><span class="dctag">${T("ctl_dc_tag")}</span><br>`+
         `${T("ctl_sp")} ${cur>=0?"+":""}${Math.round(cur)} MW (+ = ${l[0]}→${l[1]}) · `+
-        `${T("ctl_lim")} ±${l[3]} MW</div>`;
+        `${T("ctl_lim")} ±${Math.round(nomNtc)} MW</div>`;
       h+=`<div class="slrow"><div class="lab"><span>${T("ctl_sp")}</span>`+
          `<span class="amt" id="amt-dc">${cur>=0?"+":""}${Math.round(cur)} MW</span></div>`+
-         `<input type="range" min="${-l[3]}" max="${l[3]}" step="50" value="${Math.round(cur)}" `+
-         `oninput="onDC('${LKEY(l)}',this.value)"></div>`;
+         `<input type="range" min="${-nomNtc}" max="${nomNtc}" step="50" value="${Math.round(cur)}" `+
+         `oninput="onDC('${key}',this.value)"></div>`;
       h+=`<div class="btnrow" style="padding:4px 0 0">`+
-         `<button onclick="onDC('${LKEY(l)}',0)">${T("ctl_dc_zero")}</button>`+
-         `<button onclick="onDC('${LKEY(l)}',${l[3]})">${T("ctl_dc_fwd")} ${l[0]}→${l[1]}</button>`+
-         `<button onclick="onDC('${LKEY(l)}',${-l[3]})">${T("ctl_dc_rev")} ${l[1]}→${l[0]}</button></div></div>`;
+         `<button onclick="onDC('${key}',0)">${T("ctl_dc_zero")}</button>`+
+         `<button onclick="onDC('${key}',${nomNtc})">${T("ctl_dc_fwd")} ${l[0]}→${l[1]}</button>`+
+         `<button onclick="onDC('${key}',${-nomNtc})">${T("ctl_dc_rev")} ${l[1]}→${l[0]}</button></div>`;
+      h+=`<div class="ctl" style="border-top:1px solid var(--border2);padding-top:9px">`+
+         `<div class="lab" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px">`+
+         `<span>${T("ctl_ntc")}${ovDC?` <span class="ntc-custom-tag">(${T("ctl_ntc_custom")})</span>`:""}</span></div>`+
+         `<div class="ntc-edit"><input type="number" min="0" step="50" value="${Math.round(nomNtc)}" `+
+         `id="ntc-in-${key}" onchange="onNtcOverride('${key}',this.value)"><span class="unit">MW (±)</span>`+
+         `<button onclick="onNtcReset('${key}')">${T("ctl_ntc_reset")}</button></div></div></div>`;
       ctl.innerHTML=h;
     }else{
       head.textContent=`AC · ${l[0]}–${l[1]}`;
+      const key=LKEY(l);
+      const nomNtc=baseNtc(l);
+      const ovAC=ntcOverride[key]!==undefined;
       const der=lineDerate[l[0]+"-"+l[1]]!==undefined?lineDerate[l[0]+"-"+l[1]]:1;
       let delta="";
       if(BASELINE){
@@ -1716,7 +2495,36 @@ function buildControls(){
          `oninput="onLine('${l[0]}','${l[1]}',this.value)"></div>`;
       h+=`<div class="btnrow" style="padding:4px 0 0">`+
          `<button onclick="onLine('${l[0]}','${l[1]}',0)">${T("ctl_cut")}</button>`+
-         `<button onclick="onLine('${l[0]}','${l[1]}',100)">${T("ctl_restore")}</button></div></div>`;
+         `<button onclick="onLine('${l[0]}','${l[1]}',100)">${T("ctl_restore")}</button></div>`;
+      h+=`<div class="ctl" style="border-top:1px solid var(--border2);padding-top:9px">`+
+         `<div class="lab" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px">`+
+         `<span>${T("ctl_ntc")}${ovAC?` <span class="ntc-custom-tag">(${T("ctl_ntc_custom")})</span>`:""}</span></div>`+
+         `<div class="ntc-edit"><input type="number" min="0" step="50" value="${Math.round(nomNtc)}" `+
+         `id="ntc-in-${key}" onchange="onNtcOverride('${key}',this.value)"><span class="unit">MW</span>`+
+         `<button onclick="onNtcReset('${key}')">${T("ctl_ntc_reset")}</button></div>`;
+      // Conductor type + per-line DLR readout
+      const ty=lineType(l),ovTy=ntcTypeOverride[key]!==undefined;
+      const dlrF=f.dlr!==undefined?f.dlr:lineDLR(l);
+      const dlrCol=dlrF>=1.05?"var(--ok)":dlrF>=0.85?"var(--dim)":"var(--bad)";
+      // Mode label reflects Option A: calibrated lines in live mode are locked
+      // to 1.0 because the A11 measurement already embeds the real weather.
+      const calLocked=DLR_LIVE&&isCalibrated(l);
+      const modeLbl=calLocked?T("ct_calib")
+        :(DLR_LIVE&&lineWeather[key]?T("ct_live")
+        :(manualScenarioActive()?T("ct_whatif"):T("ct_manual")));
+      h+=`<div style="margin-top:9px">`+
+         `<div class="lab" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px">`+
+         `<span>${T("ct_type")}${ovTy?` <span class="ntc-custom-tag">(${T("ctl_ntc_custom")})</span>`:""}</span></div>`+
+         `<div class="ntc-edit"><select id="type-in-${key}" onchange="onTypeOverride('${key}',this.value)" `+
+         `style="flex:1 1 auto;font-family:var(--mono);font-size:10px;background:var(--panel2);`+
+         `border:1px solid var(--border2);border-radius:2px;color:var(--text);padding:4px 6px">`+
+         ['A','B','C','D'].map(k=>`<option value="${k}"${k===ty?' selected':''}>${k} · ${T(CONDUCTOR_TYPES[k].key)}</option>`).join('')+
+         `</select></div>`+
+         `<div style="display:flex;justify-content:space-between;font-size:10px;margin-top:6px">`+
+         `<span style="color:var(--dim)">${T("ct_factor")} <span style="color:var(--dim2)">(${modeLbl})</span></span>`+
+         `<span style="color:${dlrCol};font-family:var(--mono);font-weight:600">×${dlrF.toFixed(2)}</span></div>`+
+         (calLocked?`<div style="font-size:8.5px;color:var(--dim2);margin-top:3px;line-height:1.4">${T("ct_calib_hint")}</div>`:"")+
+         `</div></div></div>`;
       ctl.innerHTML=h;
     }
   }else{
@@ -1746,6 +2554,18 @@ function onDC(key,mw){dcSet[key]=+mw;
   const el=document.getElementById("amt-dc");
   if(el)el.textContent=(mw>=0?"+":"")+Math.round(mw)+" MW";
   recompute();}
+function onNtcOverride(key,mw){
+  mw=Math.max(0,Math.round(+mw)||0);
+  const l=LINES.find(x=>LKEY(x)===key);
+  if(l&&mw===l[3]){delete ntcOverride[key];}else{ntcOverride[key]=mw;}
+  buildControls();recompute();
+}
+function onNtcReset(key){delete ntcOverride[key];buildControls();recompute();}
+function onTypeOverride(key,ty){
+  const l=LINES.find(x=>LKEY(x)===key);
+  if(l&&ty===defaultLineType(l)){delete ntcTypeOverride[key];}else{ntcTypeOverride[key]=ty;}
+  buildControls();recompute();
+}
 
 /* ── N-1 Stress Test ── */
 function runN1(){
@@ -1783,7 +2603,7 @@ function showN1(){
     const tag=l[4]==="DC"?` <span class="dctag">DC${l[6]?" · "+l[6]:""}</span>`:"";
     let verdict;
     if(r.split)verdict=`<span style="color:var(--bad)">${T("n1_island")}</span>`;
-    else if(r.newOver>0)verdict=`<span style="color:var(--bad)">+${r.newOver} ${T("n1_overload")}${r.newOver>1?"s":""}</span>`;
+    else if(r.newOver>0)verdict=`<span style="color:var(--bad)">+${r.newOver} ${T(r.newOver>1?"n1_overload_pl":"n1_overload")}</span>`;
     else if(r.severity>1)verdict=`<span style="color:var(--warn)">${T("n1_util")} ${Math.round(r.maxUtil*100)}%</span>`;
     else verdict=`<span style="color:var(--ok)">${T("n1_ok")}</span>`;
     return `<div class="fr" style="cursor:pointer" onclick="applyOutage(${LINES.indexOf(l)})" title="Click to apply">`+
@@ -1843,7 +2663,7 @@ function preset(which){
   selected={type:null,key:null};buildControls();recompute();
 }
 function resetAll(keepSel){
-  genShock={};loadShock={};lineDerate={};dcSet={};
+  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};
   cascadeTrips={};cascadeLog=[];
   document.getElementById('cascadecard').style.display='none';
   for(const c in batteries){batteries[c].p_manual=0;batteries[c].p_freq=0;}
@@ -2099,12 +2919,54 @@ document.getElementById("ai-modal").addEventListener("click",e=>{
   if(e.target===document.getElementById("ai-modal"))closeAIModal();
 });
 
+/* ── Model Boundaries panel ──────────────────────────────────────────────
+   A single honest summary of what the model is and is not. Trust tags mark
+   each section: MEASURED (ENTSO-E/A11), MODELLED (DC flow, DLR), DIDACTIC
+   (frequency, cascade, storage — illustrative, not dynamic simulations). */
+const MB_SECTIONS=[
+  { key:"powerflow", tag:"modelled" },
+  { key:"calib",     tag:"measured" },
+  { key:"hvdc",      tag:"modelled" },
+  { key:"dlr",       tag:"modelled" },
+  { key:"freq",      tag:"didactic" },
+  { key:"cascade",   tag:"didactic" },
+  { key:"n1",        tag:"modelled" },
+  { key:"storage",   tag:"didactic" },
+  { key:"ai",        tag:"didactic" },
+];
+function renderBoundaries(){
+  document.getElementById("mb-title").textContent=T("mb_title");
+  document.getElementById("mb-intro").innerHTML=T("mb_intro");
+  const legend=`<div class="mb-legend">`+
+    `<span><span class="mb-tag measured">${T("mb_measured")}</span> ${T("mb_measured_d")}</span>`+
+    `<span><span class="mb-tag modelled">${T("mb_modelled")}</span> ${T("mb_modelled_d")}</span>`+
+    `<span><span class="mb-tag didactic">${T("mb_didactic")}</span> ${T("mb_didactic_d")}</span>`+
+    `</div>`;
+  const body=MB_SECTIONS.map(s=>{
+    const items=T("mb_"+s.key+"_items");
+    const lis=(Array.isArray(items)?items:[]).map(x=>`<li>${x}</li>`).join("");
+    return `<div class="mb-sec"><div class="mb-sec-head">`+
+      `<span class="t">${T("mb_"+s.key)}</span>`+
+      `<span class="mb-tag ${s.tag}">${T("mb_"+s.tag)}</span></div>`+
+      `<ul>${lis}</ul></div>`;
+  }).join("");
+  document.getElementById("mb-body").innerHTML=legend+body;
+  document.getElementById("mb-foot").innerHTML=T("mb_foot");
+  document.getElementById("mb-close").textContent=T("mb_close");
+}
+function openBoundaries(){renderBoundaries();document.getElementById("mb-modal").classList.add("open");}
+function closeBoundaries(){document.getElementById("mb-modal").classList.remove("open");}
+document.getElementById("mb-modal").addEventListener("click",e=>{
+  if(e.target===document.getElementById("mb-modal"))closeBoundaries();
+});
+
 /* ── i18n apply ── */
 function setLang(lang){
   CUR_LANG=lang;
   document.documentElement.lang=lang;
   document.getElementById("btn-en").classList.toggle("active",lang==="en");
   document.getElementById("btn-de").classList.toggle("active",lang==="de");
+  document.getElementById("btn-pt").classList.toggle("active",lang==="pt");
   // Static elements with data-i18n
   document.querySelectorAll("[data-i18n]").forEach(el=>{
     el.textContent=T(el.dataset.i18n);
@@ -2131,6 +2993,11 @@ function setLang(lang){
   const fb=document.getElementById("freeze-btn");
   fb.textContent=LIVE_FROZEN?T("freeze_on"):T("freeze_off");
   fb.title=LIVE_FROZEN?T("freeze_tip_on"):T("freeze_tip_off");
+  // Fullscreen button
+  const isFs=document.querySelector(".mapcard").classList.contains("is-fullscreen");
+  document.getElementById("fs-btn-lbl").textContent=isFs?T("fs_exit"):T("fs_enter");
+  // Model boundaries button
+  document.getElementById("mb-btn").textContent=T("mb_btn");
   // Rebuild scenarios and dynamic UI
   buildScenarios();
   buildDLR();
@@ -2147,6 +3014,22 @@ try{const l=localStorage.getItem("meridian_lang");if(l)CUR_LANG=l;}catch(e){}
 buildSVG();buildScenarios();buildDLR();refreshBaseline();buildControls();recompute();tick();
 loadLive();
 if(window.GRID_LIVE_ENDPOINT)liveInterval=setInterval(loadLive,300000);
+
+function toggleMapFullscreen(){
+  const card=document.querySelector(".mapcard");
+  const btn=document.getElementById("fs-btn-lbl");
+  const on=card.classList.toggle("is-fullscreen");
+  btn.textContent=on?T("fs_exit"):T("fs_enter");
+  document.body.style.overflow=on?"hidden":"";
+  // Redraw so the SVG map re-fits its new box size
+  setTimeout(recompute,50);
+}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    const card=document.querySelector(".mapcard");
+    if(card&&card.classList.contains("is-fullscreen"))toggleMapFullscreen();
+  }
+});
 
 function toggleFreeze(){
   LIVE_FROZEN=!LIVE_FROZEN;

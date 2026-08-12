@@ -6,12 +6,14 @@ abstract: >
   An open, interactive DC load-flow simulator of the European interconnected
   power system covering 40 bidding zones, 62 AC interconnectors, and 21 HVDC
   cables across all four synchronous areas. Fed by real-time ENTSO-E data and
-  calibrated against physically measured cross-border flows (A11). Includes
-  an AI-powered learning mode, N-1 contingency analysis, and quasi-stationary
-  frequency simulation.
+  calibrated against physically measured cross-border flows (A11). Includes a
+  weather-driven Dynamic Line Rating module (CIGRE 601 / IEEE 738) with live
+  Open-Meteo data, an AI-powered learning mode, N-1 contingency analysis,
+  cascade simulation, battery storage, and quasi-stationary frequency
+  simulation. Trilingual UI (English, German, Portuguese).
 
-version: "2.0"
-date-released: "2025-07-25"
+version: "2.1"
+date-released: "2026-08-01"
 license: MIT
 url: "https://github.com/raschott5-prog/meridian-eu-grid"
 repository-code: "https://github.com/raschott5-prog/meridian-eu-grid"
@@ -30,6 +32,8 @@ keywords:
   - HVDC
   - N-1 contingency analysis
   - frequency regulation
+  - dynamic line rating
+  - CIGRE 601
   - energy education
   - real-time data
   - open source

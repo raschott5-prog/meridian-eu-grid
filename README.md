@@ -43,15 +43,16 @@ flow, ML-based forecasting).
 - **Real physics, not a toy**: zonal DC load flow solved via B-matrix / Gaussian elimination; distributed slack per synchronous island; Kirchhoff-correct AC redistribution; HVDC as fixed injections
 - **Live ENTSO-E data**: automatic 30-minute snapshots via GitHub Actions; time-alignment across zones with up to 240-minute carry-forward for slow-reporting TSOs; MW-weighted completeness check guards against phantom deficits
 - **A11 calibration**: susceptance fitting, HVDC pinning, empirical NTC correction — full fit report at `/api/grid/calibration`
-- **Dynamic Line Rating (DLR)**: weather-based NTC scaling — temperature, wind speed, and solar irradiance determine actual line capacity via a simplified IEEE 738 thermal model; five presets from Heatwave (×0.44) to Storm (×1.74)
+- **Dynamic Line Rating (DLR)**: weather-based NTC scaling grounded in a **CIGRE 601 / IEEE 738 steady-state thermal balance** (convection, radiation, solar gain), per **standardised conductor type** (380/220/110 kV overhead, underground cable). Two modes: global "what-if" sliders, or **per-line live weather** fetched from Open-Meteo at each line's geographic midpoint. DLR and A11 calibration are mutually exclusive per line, so real weather is never double-counted
+- **Model Boundaries panel**: a one-click, trilingual summary of every module's assumptions and limits, with per-section trust tags (measured / modelled / didactic) — transparency about what is real data vs. model vs. teaching illustration
 - **Cascade simulation**: iterative protection relay model — overloaded lines trip, load redistributes, new overloads appear; shows how a single contingency becomes a blackout sequence
 - **Battery storage**: per-zone virtual battery with manual P setpoint or automatic frequency-support droop (5% droop, full power at ±200 mHz); SoC hard limits; time-to-empty/full display
 - **Browser-native solver**: the JavaScript solver in `meridian_grid_viz.html` is numerically identical to the Python engine, enabling offline use via GitHub Pages
 - **AI learning mode**: post-intervention explanation at beginner / advanced level; multi-provider (Anthropic / OpenAI / Google); key stored locally in the browser
 - **N-1 stress test**: all 83 connections tested individually on the live-calibrated state; islanding and overload detected
 - **Frequency simulation**: quasi-stationary Δf = −ΔP/λ per synchronous island, with real protection thresholds (FCR, UFLS, generator protection)
-- **Bilingual UI**: English default, full German translation, preference saved in `localStorage`; Freeze button pauses live data during teaching
-- **Five test suites**: XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage (37 assertions)
+- **Trilingual UI**: English default, full German and European Portuguese translations (202 keys each, at parity), preference saved in `localStorage`; Freeze button pauses live data during teaching; fullscreen map mode for presentations
+- **Test coverage**: five Python suites (XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage — 37 assertions) plus three JavaScript suites for the DLR subsystem (thermal physics, weather loader, calibration interaction — 46 assertions)
 
 ---
 
@@ -162,6 +163,77 @@ by a single measurement.
 
 Full fit report: `GET /api/grid/calibration`
 
+### Dynamic Line Rating (DLR)
+
+AC line capacity depends on weather: a conductor sheds heat by convection and
+radiation and gains it from ohmic losses and sunlight, so a cold, windy line
+carries more than a hot, still, sunlit one. MERIDIAN Grid models this with a
+**steady-state thermal balance** after CIGRE Technical Brochure 601 (2014) and
+IEEE Std 738-2012:
+
+```
+q_j(I) + q_s = q_c(v, T_amb) + q_r(T_amb)
+```
+
+where `q_j = I²·R(T)` is Joule heating, `q_s = α·S·D` solar gain, `q_c` forced
++ natural convection (Reynolds/Nusselt correlations), and
+`q_r = π·D·ε·σ·(T_cond⁴ − T_amb⁴)` radiation. Solving for the current that
+brings the conductor to its rated temperature gives the ampacity, and the DLR
+factor is the ratio to ampacity at reference weather:
+
+```
+DLR = I_max(weather) / I_max(reference)
+```
+
+**Conductor types.** Each AC line carries one of four standardised types,
+defaulted from its NTC and overridable per line in the UI:
+
+| Type | Conductor | T_max | Solar absorptivity | Default assignment |
+|---|---|---|---|---|
+| A | 380 kV overhead (Al/St 450/50) | 80 °C | 0.85 | NTC ≥ 3000 MW |
+| B | 220 kV overhead (Al/St 240/40) | 75 °C | 0.85 | 1000–3000 MW |
+| C | 110 kV overhead (Al/St 120/20) | 70 °C | 0.85 | < 1000 MW |
+| D | HV underground cable | 65 °C | 0.00 (no solar) | manual only |
+
+Types are **standardised, not asset-specific** — real conductor data is not
+public at this resolution. The model reproduces the correct *direction and
+rough magnitude* of weather sensitivity, which is the teaching point.
+
+**Two modes.** *Manual* applies one weather set (global sliders / presets) to
+every AC line — the classic what-if knob. *Live* fetches current temperature,
+10 m wind and shortwave irradiance from the keyless
+[Open-Meteo](https://open-meteo.com) API at each line's geographic midpoint,
+in a single batched request cached for 20 minutes. Wind is lifted from 10 m to
+an assumed 30 m conductor height via the power-law profile
+`v(h) = v₁₀·(h/10)^0.14`.
+
+**Two documented simplifications.** (1) The raw thermal-balance ratio swings
+wider than the *usable* DLR headroom reported in TSO field trials (≈ 0.7–1.5×),
+because real ratings keep conservative seasonal and n-1 margins; a mild
+power-law damping (exponent 0.55) brings the model into that empirical band
+while preserving the ranking of weather effects. (2) There is no thermal
+inertia — the balance is steady-state only.
+
+**Interaction with A11 calibration (no double-counting).** An A11-calibrated
+NTC is an empirical value that *already embeds the weather that was blowing
+when it was measured*. Multiplying a modelled DLR factor on top would count
+weather twice. So DLR and calibration are **mutually exclusive per line**: in
+live mode, calibrated lines are held at DLR = 1.0 (the measurement wins);
+only uncalibrated lines receive a modelled factor. A deliberate manual what-if
+(sliders moved off reference) does apply to all lines, since the user is then
+explicitly extrapolating beyond current reality.
+
+### Model Boundaries
+
+Every module carries assumptions and limits. Rather than bury these, the UI
+exposes a one-click **Model Boundaries** panel (trilingual) that summarises
+each part with a trust tag: **measured** (A11 calibration — the only part
+anchored directly in real measurements), **modelled** (DC load flow, HVDC,
+DLR, N-1), or **didactic** (frequency, cascade, storage, AI — illustrative,
+not dynamic simulations). The same honesty is reflected throughout: model
+defaults are visually flagged, and the header always reads *not operational
+data*.
+
 ---
 
 ## Repository Structure
@@ -171,12 +243,16 @@ Full fit report: `GET /api/grid/calibration`
 | `meridian_grid.py` | Physics core: topology, DC load flow, battery storage, scenario engine |
 | `meridian_grid_live.py` | ENTSO-E pipeline + Flask endpoints + A11 calibration |
 | `snapshot.py` | Static GitHub Pages bundle (called by Actions cron) |
-| `meridian_grid_viz.html` | Interactive map + AI learning mode + DLR + cascade (runs standalone) |
+| `meridian_grid_viz.html` | Interactive map + AI learning mode + DLR + cascade + Model Boundaries (runs standalone) |
+| `dlr_thermal.js` | Standalone CIGRE 601 / IEEE 738 thermal model (used by the DLR physics tests) |
 | `test_grid_live.py` | Unit tests: XML parsing, pumped storage, time alignment |
 | `test_e2e.py` | End-to-end with mocked ENTSO-E API |
 | `test_realdata_regression.py` | Reproduces observed ENTSO-E data edge cases |
 | `test_calibration.py` | A11 calibration reconstructs a known ground truth |
 | `test_battery.py` | Battery storage: SoC limits, droop response, island-local effect (37 assertions) |
+| `test_dlr_thermal.js` | DLR thermal physics: reference point, monotonicity, magnitude, clamping (20 assertions) |
+| `test_weather_loader.js` | Open-Meteo loader: parsing, wind correction, midpoints, caching, URL (16 assertions) |
+| `test_dlr_calibration.js` | DLR × A11 interaction: no weather double-counting across all modes (10 assertions) |
 
 ---
 
@@ -207,9 +283,15 @@ python3 test_e2e.py                  # full pipeline, mocked API
 python3 test_realdata_regression.py  # real-data edge cases
 python3 test_calibration.py          # calibration ground truth
 python3 test_battery.py              # battery storage: 37 assertions
+
+node test_dlr_thermal.js             # DLR thermal physics: 20 assertions
+node test_weather_loader.js          # Open-Meteo loader: 16 assertions
+node test_dlr_calibration.js         # DLR × A11 interaction: 10 assertions
 ```
 
-All suites run without network access. CI runs all five on every push.
+All suites run without network access (the JS suites use a minimal DOM stub
+and a mocked `fetch`). CI runs the Python suites on every push; the JS suites
+require Node and can be added to the workflow.
 
 ---
 
@@ -224,7 +306,7 @@ All suites run without network access. CI runs all five on every push.
 | Dark Doldrums | Wind/solar drought + demand surge across NW Europe |
 | Baltic Islanding | Synchronous area separation; island frequency |
 | **⚡ Transit: FR↓ + DE Wind↑** | **Unscheduled loop flow**: power transits *through* France toward Spain even as France becomes a net importer. Voltage angle gradient θ_DE >> θ_FR > θ_ES drives the FR→ES flow against trading intent. |
-| **🌡 Weather / DLR** | Heatwave (×0.44 NTC) vs Storm (×1.74 NTC) — same grid, same generation, radically different line capacities. Simplified IEEE 738 thermal model: convective cooling, solar heating, rated conductor temperature 80°C. |
+| **🌡 Weather / DLR** | Heatwave vs. Storm — same grid, same generation, radically different line capacities. CIGRE 601 / IEEE 738 steady-state thermal balance (convection, radiation, solar gain) per conductor type; damped to the empirical TSO band (≈ 0.7–1.5×). Switch on live weather to see each line rated from real conditions at its own location. |
 | **⚡ Cascade Simulation** | Set Heatwave, press Cascade — watch lines trip in sequence as reduced thermal capacity turns marginal overloads into a blackout chain. Replicates the protection relay cascade mechanism behind the April 2025 Iberian event. |
 
 ---
@@ -238,7 +320,7 @@ All suites run without network access. CI runs all five on every push.
 | **A75 reporting threshold** | Only plants above ~100 MW are reported. Distributed PV and small-scale generation are systematically underrepresented. |
 | **Open balance** | Flows to/from GB (post-Brexit), Ukraine, Morocco, and non-modelled Balkan neighbours are not closed. The residual is reported as `external_balance_mw` and absorbed by the distributed slack — never silently discarded. |
 | **Static snapshot** | Single operating point, not a dynamic simulation. Transient stability, voltage control, and relay behaviour are outside scope. |
-| **DLR is spatially uniform** | The weather overlay applies a single factor to all AC lines. Real DLR is line-specific; terrain, altitude, and local meteorology vary significantly across a 3,000 km network. |
+| **DLR uses standardised conductors** | Lines carry one of four standardised conductor types, not asset-specific data (real conductor specs are not public at this resolution). Live weather is per-line, but the thermal response is type-generic. A power-law damping (0.55) and a documented clamp keep factors in the empirical TSO band; there is no thermal inertia (steady-state only). On A11-calibrated lines DLR is suppressed to avoid double-counting weather. |
 | **Cascade is deterministic** | All overloaded lines trip simultaneously at each step. Real protection relays have time-distance characteristics; trip sequence depends on relay settings, not just overload magnitude. |
 | **API throttling** | ~250 requests per refresh approaches the ENTSO-E rate limit. Retry with backoff, shuffled fetch order, and persistent calibration state mitigate this; degraded data quality is flagged in the UI. |
 
@@ -263,11 +345,11 @@ Each module can interface with the existing calibrated base state via `/api/grid
 
 ```bibtex
 @software{meridian_grid,
-  author  = {raschott5-prog},
+  author  = {Schott, Robert},
   title   = {{MERIDIAN Grid}: Real-Data EU Power Grid Simulator},
-  year    = {2025},
+  year    = {2026},
   url     = {https://github.com/raschott5-prog/meridian-eu-grid},
-  version = {2.0}
+  version = {2.1}
 }
 ```
 
