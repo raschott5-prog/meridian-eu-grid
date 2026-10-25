@@ -6,7 +6,8 @@ test_pst.py — Phase-shifting transformer (PST) test suite
 Tests the PST model on the DE–PL border (Mikułowa / Vierraden):
 neutral = plain AC physics, target flow held, range saturation,
 blocked flow rerouted via parallel paths (Kirchhoff), derate/cut,
-A11 calibration pins the PST to the measured flow.
+A11 calibration pins the PST to the measured flow
+with its range left free for shocks.
 
 Numerically cross-validated against the JS frontend (meridian_grid_viz.html):
 pstControl() mirrors GridModel._pst_control() to the MW.
@@ -146,11 +147,34 @@ cal.calibrate(meas, TGT)
 check("Measured DE–PL flow becomes the PST target",
       round(cal.pst_targets.get(("DE", "PL"), 1e9)) == -900,
       f"{cal.pst_targets.get(('DE', 'PL'))}")
-check("PST line excluded from susceptance fit", ("DE", "PL") not in cal.suscept_scale)
 gc = GridModel(); cal.apply(gc)
 _, fcal = flows(gc)
 check("Calibrated model reproduces measured DE–PL", abs(fcal[DEPL]["flow_mw"] + 900) <= 1,
       f"{fcal[DEPL]['flow_mw']:+} MW")
+p = fcal[DEPL]["pst"]
+check("Calibrated state leaves the PST range free (angle folded into fit)",
+      not p["saturated"] and abs(p["shift_mw"]) < 0.5 * p["range_mw"],
+      f"shift {p['shift_mw']:+} / ±{p['range_mw']}")
+gc.shock_generation("DE", "wind", +15000)
+_, fcs = flows(gc)
+check("Calibrated PST holds the measured flow under a shock",
+      abs(fcs[DEPL]["flow_mw"] + 900) <= 1, f"{fcs[DEPL]['flow_mw']:+} MW")
+
+# Real-data case (live run 25.10.): neutral model flow far above the
+# measured one must not leave the PST saturated in the calibrated state
+truth = GridModel(); truth.shock_generation("DE", "wind", +12000)
+truth.shock_load("PL", +3000)
+meas2 = {(f["a"], f["b"], f["label"]): float(f["flow_mw"])
+         for f in truth.solve()["flows"]}
+meas2[("DE", "PL", None)] = meas2[("DE", "PL", None)] * 0.45
+cal2 = L.Calibration(); cal2.calibrate(meas2, TGT)
+g2 = GridModel(); cal2.apply(g2)
+_, f2 = flows(g2)
+check("High neutral flow vs. low measurement: PST not stuck at its stop",
+      not f2[DEPL]["pst"]["saturated"]
+      and abs(f2[DEPL]["flow_mw"] - meas2[("DE", "PL", None)]) <= 1,
+      f"meas {meas2[('DE', 'PL', None)]:+.0f}, model {f2[DEPL]['flow_mw']:+}, "
+      f"shift {f2[DEPL]['pst']['shift_mw']:+}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

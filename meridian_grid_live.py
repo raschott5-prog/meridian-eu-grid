@@ -855,7 +855,7 @@ class Calibration:
             if ln.kind == "DC" and key in measured:
                 self.dc_setpoints[key] = measured[key]
             # PST-Leitung: Der Betreiber hält den Fluss per Phasenwinkel –
-            # der Messwert IST der Sollwert, nicht Ergebnis der Suszeptanz
+            # der Messwert wird zum Sollwert für alles, was danach passiert
             if ln.kind == "AC" and ln.pst > 0 and key in measured:
                 self.pst_targets[(ln.a, ln.b)] = measured[key]
 
@@ -910,10 +910,18 @@ class Calibration:
             self.zone_adjust[c] = meas_net[c] - model_net
 
         # (3) Suszeptanz-Fit (iterativ, gedämpft)
+        #     PSTs dabei NEUTRAL: Der Winkel, den die echten PSTs gerade
+        #     fahren, geht in den Fit der Leitung ein. Im kalibrierten
+        #     Zustand steht der PST so bei x ≈ 0 und hat seinen vollen
+        #     Stellbereich für Schocks. (Erster Versuch – PST-Leitung vom
+        #     Fit ausnehmen – ließ den PST im Live-Lauf 25.10. schon im
+        #     Startzustand am Anschlag hängen: DE–PL gemessen 1606 MW,
+        #     neutral ~3800 MW, x = −3000 → 2198 MW, Phantom-Overload.)
         ac_meas = {(a, b): mw for (a, b, label), mw in measured.items()
-                   if label is None and (a, b) not in self.pst_targets}
+                   if label is None}
         g = GridModel()
         self.apply(g)
+        g.pst_target.clear()
         for _ in range(self.ITERATIONS):
             res = g.solve()
             changed = False
@@ -934,8 +942,11 @@ class Calibration:
                     changed = True
             g = GridModel()
             self.apply(g)
+            g.pst_target.clear()
             if not changed:
                 break
+        g = GridModel()
+        self.apply(g)       # Abschluss MIT PST-Sollwerten
 
         # Abschlussbericht: Modell vs. Messung
         res = g.solve()

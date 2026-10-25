@@ -53,7 +53,7 @@ flow, ML-based forecasting).
 - **N-1 stress test**: all 83 connections tested individually on the live-calibrated state; islanding and overload detected
 - **Frequency simulation**: quasi-stationary Δf = −ΔP/λ per synchronous island, with real protection thresholds (FCR, UFLS, generator protection)
 - **Trilingual UI**: English default, full German and European Portuguese translations (209 keys each, at parity), preference saved in `localStorage`; Freeze button pauses live data during teaching; fullscreen map mode for presentations
-- **Test coverage**: six Python suites (XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage — 37 assertions, PST — 22 assertions) plus four JavaScript suites (DLR thermal physics, weather loader, calibration interaction — 46 assertions; PST — 7 assertions)
+- **Test coverage**: six Python suites (XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage — 37 assertions, PST — 24 assertions) plus four JavaScript suites (DLR thermal physics, weather loader, calibration interaction — 46 assertions; PST — 7 assertions)
 
 ---
 
@@ -155,8 +155,10 @@ Every data refresh applies a three-step calibration against A11 measured
 physical flows:
 
 1. **HVDC pinning** — cable setpoints replaced directly by A11 measurement;
-   PST borders likewise get the measured flow as their target (and are
-   excluded from the susceptance fit — their flow is set by angle, not by B)
+   PST borders get the measured flow as their target. The susceptance fit
+   runs with PSTs neutral, so the angle the real PSTs hold at that moment is
+   folded into the fit and the calibrated PST starts at x ≈ 0 with its full
+   range free for shocks
 2. **Susceptance fitting** — AC scaling factors fitted iteratively (damped,
    bounded 0.25–4.0) until modelled flows match A11; fit state is
    persistent across refreshes
@@ -258,7 +260,7 @@ data*.
 | `test_realdata_regression.py` | Reproduces observed ENTSO-E data edge cases |
 | `test_calibration.py` | A11 calibration reconstructs a known ground truth |
 | `test_battery.py` | Battery storage: SoC limits, droop response, island-local effect (37 assertions) |
-| `test_pst.py` | Phase-shifting transformers: target hold, saturation, rerouting, calibration (22 assertions) |
+| `test_pst.py` | Phase-shifting transformers: target hold, saturation, rerouting, calibration (24 assertions) |
 | `test_dlr_thermal.js` | DLR thermal physics: reference point, monotonicity, magnitude, clamping (20 assertions) |
 | `test_weather_loader.js` | Open-Meteo loader: parsing, wind correction, midpoints, caching, URL (16 assertions) |
 | `test_dlr_calibration.js` | DLR × A11 interaction: no weather double-counting across all modes (10 assertions) |
@@ -294,7 +296,7 @@ python3 test_e2e.py                  # full pipeline, mocked API
 python3 test_realdata_regression.py  # real-data edge cases
 python3 test_calibration.py          # calibration ground truth
 python3 test_battery.py              # battery storage: 37 assertions
-python3 test_pst.py                  # phase-shifting transformers: 22 assertions
+python3 test_pst.py                  # phase-shifting transformers: 24 assertions
 
 node test_dlr_thermal.js             # DLR thermal physics: 20 assertions
 node test_weather_loader.js          # Open-Meteo loader: 16 assertions
