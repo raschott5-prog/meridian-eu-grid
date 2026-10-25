@@ -144,7 +144,7 @@ INTERCONNECTORS: list[Line] = [
     # ── CE: Core ─────────────────────────────────────────────────────────────
     Line("FR", "DE", 12.0, 4800),
     Line("FR", "BE",  9.0, 4300),
-    Line("FR", "CH", 10.0, 3700),
+    Line("FR", "CH", 10.0, 4350),   # A11-measured max (Oct 2026)
     Line("FR", "IT",  8.0, 4350),
     Line("FR", "ES",  8.0, 2800),
     Line("DE", "NL", 11.0, 5000),
@@ -152,45 +152,45 @@ INTERCONNECTORS: list[Line] = [
     Line("DE", "AT", 14.0, 5400),
     Line("DE", "CZ", 10.0, 2100),
     Line("DE", "PL",  7.0, 3000),
-    Line("NL", "BE",  8.0, 2400),
+    Line("NL", "BE",  8.0, 3700),   # A11-measured max (Oct 2026)
     Line("CH", "AT",  7.0, 1700),
     Line("CH", "IT", 10.0, 4240),
-    Line("AT", "IT",  2.0,  455),   # one weak physical circuit
-    Line("AT", "CZ",  6.0,  900),
-    Line("AT", "HU",  7.0, 1200),
-    Line("AT", "SI",  6.0,  950),
-    Line("CZ", "SK",  8.0, 1100),
-    Line("CZ", "PL",  6.0,  600),
-    Line("SK", "HU",  7.0, 1300),
-    Line("SK", "PL",  4.0,  500),
+    Line("AT", "IT",  2.0,  755),   # Brenner + Reschenpass 220 kV (since 2024, +300 MW)
+    Line("AT", "CZ",  6.0, 1650),   # A11-measured max (Oct 2026)
+    Line("AT", "HU",  7.0, 2050),   # A11-measured max (Oct 2026)
+    Line("AT", "SI",  6.0, 1600),   # A11-measured max (Oct 2026)
+    Line("CZ", "SK",  8.0, 2150),   # A11-measured max (Oct 2026)
+    Line("CZ", "PL",  6.0, 2050),   # A11-measured max (Oct 2026); loop flows >> trading NTC
+    Line("SK", "HU",  7.0, 2450),   # A11-measured max (Oct 2026)
+    Line("SK", "PL",  4.0,  900),   # A11-measured max (Oct 2026)
     Line("HU", "SI",  4.0,  600),
-    Line("HU", "HR",  5.0,  900),
-    Line("SI", "HR",  5.0, 1200),
-    Line("SI", "IT",  4.0,  680),
-    Line("ES", "PT",  9.0, 3400),
+    Line("HU", "HR",  5.0, 1850),   # A11-measured max (Oct 2026)
+    Line("SI", "HR",  5.0, 1650),   # A11-measured max (Oct 2026)
+    Line("SI", "IT",  4.0, 1050),   # A11-measured max (Oct 2026)
+    Line("ES", "PT",  9.0, 4450),   # new ES-PT line Jul 2026 (+1000 MW); A11-measured max
     # ALEGrO: DC cable WITHIN the CE area (only DE–BE cable)
     _dc("DE", "BE", 1000, +300, "ALEGrO"),
     # ── CE: South-East (Balkans) ─────────────────────────────────────────────
     Line("HU", "RO",  6.0, 1300),
     Line("HU", "RS",  5.0, 1200),
-    Line("HR", "RS",  4.0,  600),
+    Line("HR", "RS",  4.0,  750),   # A11-measured max (Oct 2026)
     Line("HR", "BA",  5.0, 1000),
     Line("RS", "BA",  4.0,  700),
     Line("RS", "RO",  4.0, 1000),
-    Line("RS", "BG",  4.0,  600),
+    Line("RS", "BG",  4.0, 1550),   # 1405 MW measured 23.07.2026, see calibrate_limits()
     Line("RS", "ME",  3.0,  600),
     Line("RS", "MK",  3.0,  550),
-    Line("RO", "BG",  5.0, 1000),
+    Line("RO", "BG",  5.0, 2250),   # A11-measured max (Oct 2026)
     Line("BG", "GR",  4.0,  800),
     Line("BG", "MK",  3.0,  500),
-    Line("GR", "MK",  3.0,  550),
+    Line("GR", "MK",  3.0,  650),   # A11-measured max (Oct 2026)
     Line("GR", "AL",  3.0,  400),
     Line("ME", "AL",  3.0,  500),
     Line("ME", "BA",  3.0,  550),
     _dc("IT", "GR",  500,  -150, "GRITA"),    # typical flow GR→IT
     _dc("IT", "ME",  600,  -250, "MONITA"),   # typical flow ME→IT
     # ── CE: North — DK-West (Jutland is CE-synchronous) ─────────────────────
-    Line("DE", "DK1", 6.0, 2500),
+    Line("DE", "DK1", 6.0, 3500),   # West Coast Line Endrup-Klixbuell in service 2026
     _dc("DK1","NL", 700, +200, "COBRAcable"),
     # ── CE: Baltic states (LitPol link AC since Feb 2025) ───────────────────
     Line("PL", "LT",  4.0,  500),
@@ -210,7 +210,7 @@ INTERCONNECTORS: list[Line] = [
     Line("SE1","SE2", 8.0, 3300),
     Line("SE2","SE3", 9.0, 7300),
     Line("SE3","SE4", 8.0, 5400),
-    Line("SE1","FI",  5.0, 1500),
+    Line("SE1","FI",  5.0, 1900),   # Aurora Line in service since Nov 2025 (Fingrid: max 1900)
     Line("SE3","FI",  4.0, 1200),   # Fenno-Skan is DC but modelled as AC (zonal simplification)
     Line("SE4","DK2", 6.0, 1700),   # Öresund bridge: AC
     # ── HVDC cables BETWEEN synchronous areas ────────────────────────────────
@@ -218,7 +218,7 @@ INTERCONNECTORS: list[Line] = [
     _dc("DK1","DK2",  600, +200, "Storebælt"),
     _dc("DK1","NO2", 1700, -800, "Skagerrak"),
     _dc("DK1","SE3",  740, -300, "Konti-Skan"),
-    _dc("DE", "DK2",  600, -200, "Kontek"),
+    _dc("DE", "DK2", 1000, -300, "Kontek/Kriegers Flak"),  # + KF CGS 400 MW (2021)
     _dc("DE", "SE4",  615, -300, "Baltic Cable"),
     _dc("PL", "SE4",  600, -200, "SwePol"),
     _dc("DE", "NO2", 1400, -900, "NordLink"),
