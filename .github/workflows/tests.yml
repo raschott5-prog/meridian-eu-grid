@@ -15,3 +15,4 @@ jobs:
       - run: python test_e2e.py
       - run: python test_calibration.py
       - run: python test_battery.py
+      - run: python test_pst.py

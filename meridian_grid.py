@@ -125,6 +125,13 @@ SYNC_ZONES = ("CE", "N", "GB", "IE")
 # AC: suscept = relative susceptance (flow follows Kirchhoff), ntc = limit MW.
 # DC: suscept irrelevant; setpoint = scheduled flow MW (+ = a→b). Defaults are
 #     typical trading directions; overridden by A11 measurements at runtime.
+# PST: AC edge with phase-shifting transformers (pst = range > 0). The PST
+#     adds an angle φ: F = b·(Δθ + φ). Expressed in MW, x = b·φ acts as an
+#     injection pair (−x at a, +x at b) and is controlled so the edge holds
+#     a target flow (MW, + = a→b), within |x| ≤ pst. Default is neutral (0°);
+#     the live calibration sets the target to the A11-measured flow, as the
+#     real PSTs hold the scheduled exchange. The flow the PST blocks does
+#     not vanish – Kirchhoff pushes it onto parallel paths.
 
 @dataclass
 class Line:
@@ -135,6 +142,7 @@ class Line:
     kind: str = "AC"         # 'AC' | 'DC'
     setpoint: float = 0.0    # DC only: scheduled flow MW (+: a→b)
     label: str = ""          # DC only: cable name
+    pst: float = 0.0         # AC only: PST range |x| ≤ pst MW (0 = no PST)
 
 def _dc(a, b, ntc, setpoint=0.0, label=""):
     return Line(a, b, 0.0, ntc, "DC", setpoint, label)
@@ -151,7 +159,11 @@ INTERCONNECTORS: list[Line] = [
     Line("DE", "CH",  9.0, 4600),
     Line("DE", "AT", 14.0, 5400),
     Line("DE", "CZ", 10.0, 2100),
-    Line("DE", "PL",  7.0, 3000),
+    # DE–PL: fully PST-controlled since 2018 (Mikułowa–Hagenwerder 2016,
+    # Vierraden–Krajnik 2018). PSE/50Hertz use them to block unscheduled
+    # loop flows DE→PL. Range: plausibility assumption for the zonal edge –
+    # x = 3000 MW moves the DE–PL flow by ≈ ±1400 MW (rest closes via CZ/SK).
+    Line("DE", "PL",  7.0, 3000, pst=3000),
     Line("NL", "BE",  8.0, 3700),   # A11-measured max (Oct 2026)
     Line("CH", "AT",  7.0, 1700),
     Line("CH", "IT", 10.0, 4240),
@@ -353,6 +365,7 @@ class GridModel:
         self.suscept_scale: dict[tuple[str, str], float] = {}
         self.zone_injection: dict[str, float] = {}
         self.ntc_override: dict[tuple, float] = {}
+        self.pst_target: dict[tuple[str, str], Optional[float]] = {}  # None = neutral (0°)
         self.freq_reference: dict[str, float] = {}
         self.batteries: dict[str, Battery] = {}   # zone_code → Battery
 
@@ -360,6 +373,7 @@ class GridModel:
     def reset_shocks(self):
         self.gen_shock.clear(); self.load_shock.clear()
         self.line_derate.clear(); self.dc_setpoint.clear()
+        self.pst_target.clear()
 
     # ── Battery API ───────────────────────────────────────────────────────────
     def add_battery(self, zone: str, cap_mwh: float = 500.0,
@@ -417,6 +431,11 @@ class GridModel:
     def set_dc(self, a, b, mw, label=None):
         """DC-Sollwert setzen (z.B. aus A11-Messung). +mw = Fluss a→b."""
         self.dc_setpoint[(a, b, label)] = mw
+
+    def set_pst(self, a, b, mw):
+        """PST-Sollfluss setzen (+mw = a→b). None = neutral: 0°, die
+        Leitung fließt rein physikalisch wie ohne Phasenschieber."""
+        self.pst_target[(a, b)] = mw
 
     # ── intern ────────────────────────────────────────────────────────────────
     def _derate(self, ln: Line) -> float:
@@ -484,6 +503,92 @@ class GridModel:
             groups.setdefault(find(c), []).append(c)
         return list(groups.values())
 
+    def _theta(self, P, islands) -> np.ndarray:
+        """Spannungswinkel je Insel aus B·θ = P (Referenz: erste Zone)."""
+        theta = np.zeros(self.n)
+        for isl in islands:
+            if len(isl) < 2:
+                continue
+            mi = {c: k for k, c in enumerate(isl)}
+            m = len(isl)
+            B = np.zeros((m, m))
+            for ln in INTERCONNECTORS:
+                if ln.kind != "AC":
+                    continue
+                if ln.a not in mi or ln.b not in mi:
+                    continue
+                b = ln.suscept * self._factor(ln)
+                if b < 1e-9:
+                    continue
+                i, j = mi[ln.a], mi[ln.b]
+                B[i, i] += b; B[j, j] += b; B[i, j] -= b; B[j, i] -= b
+            keep = list(range(1, m))
+            Pm = np.array([P[self.idx[c]] for c in isl])
+            th = np.zeros(m)
+            if keep:
+                th[keep] = np.linalg.solve(B[np.ix_(keep, keep)], Pm[keep])
+            for c in isl:
+                theta[self.idx[c]] = th[mi[c]]
+        return theta
+
+    def _pst_control(self, P, islands):
+        """
+        Stellgröße x je aktivem PST, sodass F = b·Δθ + x den Sollwert trifft.
+        DC-Lastfluss ist linear: F = F0 + S·x, S aus Einheits-Verschiebungen
+        (Spalte j: x_j = 1 MW, sonst nichts). Erreicht ein PST seinen
+        Stellbereich, wird er dort festgehalten und der Rest neu gelöst.
+        """
+        active, info = [], {}
+        for ln in INTERCONNECTORS:
+            if ln.kind != "AC" or ln.pst <= 0:
+                continue
+            key = (ln.a, ln.b)
+            b = ln.suscept * self._factor(ln)
+            target = self.pst_target.get(key)
+            rng = ln.pst * self._derate(ln)
+            info[key] = {"target_mw": None if target is None else int(round(target)),
+                         "shift_mw": 0, "range_mw": int(round(rng)),
+                         "saturated": False}
+            if b < 1e-9 or target is None or rng < 1e-9:
+                continue          # gekappt oder neutral: kein Eingriff
+            active.append((ln, b, float(target), rng))
+        if not active:
+            return {}, info
+
+        def pst_flows(theta, xs):
+            return np.array([b * (theta[self.idx[ln.a]] - theta[self.idx[ln.b]]) + x
+                             for (ln, b, _, _), x in zip(active, xs)])
+
+        k = len(active)
+        f0 = pst_flows(self._theta(P, islands), np.zeros(k))
+        S = np.zeros((k, k))
+        for j, (ln, _, _, _) in enumerate(active):
+            e = np.zeros(self.n)
+            e[self.idx[ln.a]] -= 1.0
+            e[self.idx[ln.b]] += 1.0
+            unit = np.zeros(k); unit[j] = 1.0
+            S[:, j] = pst_flows(self._theta(e, islands), unit)
+
+        tgt = np.array([t for _, _, t, _ in active])
+        rng = np.array([r for _, _, _, r in active])
+        x = np.zeros(k)
+        fixed = np.zeros(k, dtype=bool)
+        for _ in range(k + 1):
+            free = ~fixed
+            rhs = tgt[free] - f0[free] - S[np.ix_(free, fixed)] @ x[fixed]
+            x[free] = np.linalg.solve(S[np.ix_(free, free)], rhs)
+            over = free & (np.abs(x) > rng)
+            if not over.any():
+                break
+            x[over] = np.sign(x[over]) * rng[over]
+            fixed |= over
+
+        out = {}
+        for (ln, _, _, r), xi, sat in zip(active, x, fixed):
+            out[(ln.a, ln.b)] = float(xi)
+            info[(ln.a, ln.b)].update(shift_mw=int(round(xi)), saturated=bool(sat))
+        return out, info
+
     def solve(self) -> dict:
         P_raw = np.zeros(self.n)
         cap = np.zeros(self.n)
@@ -530,31 +635,16 @@ class GridModel:
                 reg[i] = -alpha[k] * imb
                 P[i] += reg[i]
 
+        # Phasenschieber: Verschiebung x je PST so wählen, dass die Leitung
+        # ihren Sollfluss hält (linear → Sensitivitätsmatrix, dann Klemmen)
+        pst_x, pst_info = self._pst_control(P, islands)
+        P_eff = P.copy()
+        for (a, b), x in pst_x.items():
+            P_eff[self.idx[a]] -= x
+            P_eff[self.idx[b]] += x
+
         # AC-Lastfluss je Insel
-        theta = np.zeros(self.n)
-        for isl in islands:
-            if len(isl) < 2:
-                continue
-            mi = {c: k for k, c in enumerate(isl)}
-            m = len(isl)
-            B = np.zeros((m, m))
-            for ln in INTERCONNECTORS:
-                if ln.kind != "AC":
-                    continue
-                if ln.a not in mi or ln.b not in mi:
-                    continue
-                b = ln.suscept * self._factor(ln)
-                if b < 1e-9:
-                    continue
-                i, j = mi[ln.a], mi[ln.b]
-                B[i, i] += b; B[j, j] += b; B[i, j] -= b; B[j, i] -= b
-            keep = list(range(1, m))
-            Pm = np.array([P[self.idx[c]] for c in isl])
-            th = np.zeros(m)
-            if keep:
-                th[keep] = np.linalg.solve(B[np.ix_(keep, keep)], Pm[keep])
-            for c in isl:
-                theta[self.idx[c]] = th[mi[c]]
+        theta = self._theta(P_eff, islands)
 
         # Kantenflüsse
         flows = []
@@ -562,6 +652,7 @@ class GridModel:
             if ln.kind == "AC":
                 b = ln.suscept * self._factor(ln)
                 f = b * (theta[self.idx[ln.a]] - theta[self.idx[ln.b]])
+                f += pst_x.get((ln.a, ln.b), 0.0)
             else:
                 f = dc_flows[(ln.a, ln.b, ln.label)]
             base_ntc = self.ntc_override.get((ln.a, ln.b, ln.label or None), ln.ntc)
@@ -580,6 +671,7 @@ class GridModel:
                 "ntc_raised": bool(base_ntc > ln.ntc),
                 "util": float(round(util, 3)),
                 "overload": bool(util > 1.0),
+                "pst": pst_info.get((ln.a, ln.b)) if ln.pst > 0 else None,
             })
 
         zones_out = {}

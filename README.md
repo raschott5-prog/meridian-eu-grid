@@ -42,6 +42,7 @@ flow, ML-based forecasting).
 
 - **Real physics, not a toy**: zonal DC load flow solved via B-matrix / Gaussian elimination; distributed slack per synchronous island; Kirchhoff-correct AC redistribution; HVDC as fixed injections
 - **Live ENTSO-E data**: automatic 30-minute snapshots via GitHub Actions; time-alignment across zones with up to 240-minute carry-forward for slow-reporting TSOs; MW-weighted completeness check guards against phantom deficits
+- **Phase-shifting transformers (PST)**: the DE–PL border (Mikułowa, Vierraden) is PST-controlled — the PST holds a target flow within its range, and the blocked loop flow visibly reroutes via CZ/SK; live mode pins it to the A11-measured flow, the UI offers target / neutral / hold-current-flow
 - **A11 calibration**: susceptance fitting, HVDC pinning, empirical NTC correction — full fit report at `/api/grid/calibration`
 - **Dynamic Line Rating (DLR)**: weather-based NTC scaling grounded in a **CIGRE 601 / IEEE 738 steady-state thermal balance** (convection, radiation, solar gain), per **standardised conductor type** (380/220/110 kV overhead, underground cable). Two modes: global "what-if" sliders, or **per-line live weather** fetched from Open-Meteo at each line's geographic midpoint. DLR and A11 calibration are mutually exclusive per line, so real weather is never double-counted
 - **Model Boundaries panel**: a one-click, trilingual summary of every module's assumptions and limits, with per-section trust tags (measured / modelled / didactic) — transparency about what is real data vs. model vs. teaching illustration
@@ -51,8 +52,8 @@ flow, ML-based forecasting).
 - **AI learning mode**: post-intervention explanation at beginner / advanced level; multi-provider (Anthropic / OpenAI / Google); key stored locally in the browser
 - **N-1 stress test**: all 83 connections tested individually on the live-calibrated state; islanding and overload detected
 - **Frequency simulation**: quasi-stationary Δf = −ΔP/λ per synchronous island, with real protection thresholds (FCR, UFLS, generator protection)
-- **Trilingual UI**: English default, full German and European Portuguese translations (202 keys each, at parity), preference saved in `localStorage`; Freeze button pauses live data during teaching; fullscreen map mode for presentations
-- **Test coverage**: five Python suites (XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage — 37 assertions) plus three JavaScript suites for the DLR subsystem (thermal physics, weather loader, calibration interaction — 46 assertions)
+- **Trilingual UI**: English default, full German and European Portuguese translations (209 keys each, at parity), preference saved in `localStorage`; Freeze button pauses live data during teaching; fullscreen map mode for presentations
+- **Test coverage**: six Python suites (XML parsing, end-to-end with mocked API, real-data regression, calibration reconstruction, battery storage — 37 assertions, PST — 22 assertions) plus four JavaScript suites (DLR thermal physics, weather loader, calibration interaction — 46 assertions; PST — 7 assertions)
 
 ---
 
@@ -101,6 +102,7 @@ than silently falling back to defaults.
 | Bidding zones | 40 |
 | AC interconnectors | 62 |
 | HVDC cables | 21 |
+| PST-controlled AC borders | 1 (DE–PL) |
 | Synchronous areas | 4 (CE, Nordic, GB, Ireland) |
 
 Zones not included: UA/MD (data gaps), LU (aggregated into DE-LU), MT/CY
@@ -114,7 +116,11 @@ The solver implements a standard zonal DC load flow:
 1. HVDC cables are treated as fixed power injections (setpoint or A11-pinned value)
 2. AC interconnector susceptances form the nodal B-matrix
 3. Voltage angles θ are solved per synchronous island via Gaussian elimination
-4. Power flows: `P_ij = B_ij · (θ_i − θ_j)`
+4. Power flows: `P_ij = B_ij · (θ_i − θ_j)`; on PST borders
+   `P_ij = B_ij · (θ_i − θ_j) + x`, where the shift `x = B_ij · φ` enters the
+   B-matrix system as an injection pair (−x at i, +x at j). `x` is solved from
+   the linear sensitivity `F = F0 + S·x` so the border holds its target flow,
+   clamped to the PST range (saturated PSTs are pinned, the rest re-solved)
 5. Slack is distributed proportionally to installed generation capacity per island
 
 Cutting an AC line to zero removes it from the B-matrix and may cause
@@ -148,7 +154,9 @@ protection).
 Every data refresh applies a three-step calibration against A11 measured
 physical flows:
 
-1. **HVDC pinning** — cable setpoints replaced directly by A11 measurement
+1. **HVDC pinning** — cable setpoints replaced directly by A11 measurement;
+   PST borders likewise get the measured flow as their target (and are
+   excluded from the susceptance fit — their flow is set by angle, not by B)
 2. **Susceptance fitting** — AC scaling factors fitted iteratively (damped,
    bounded 0.25–4.0) until modelled flows match A11; fit state is
    persistent across refreshes
@@ -250,9 +258,11 @@ data*.
 | `test_realdata_regression.py` | Reproduces observed ENTSO-E data edge cases |
 | `test_calibration.py` | A11 calibration reconstructs a known ground truth |
 | `test_battery.py` | Battery storage: SoC limits, droop response, island-local effect (37 assertions) |
+| `test_pst.py` | Phase-shifting transformers: target hold, saturation, rerouting, calibration (22 assertions) |
 | `test_dlr_thermal.js` | DLR thermal physics: reference point, monotonicity, magnitude, clamping (20 assertions) |
 | `test_weather_loader.js` | Open-Meteo loader: parsing, wind correction, midpoints, caching, URL (16 assertions) |
 | `test_dlr_calibration.js` | DLR × A11 interaction: no weather double-counting across all modes (10 assertions) |
+| `test_pst.js` | Browser PST controller, mirrors `test_pst.py` (7 assertions) |
 
 ---
 
@@ -271,6 +281,7 @@ Optional shock parameters (JSON-encoded query string):
 /api/grid?shocks={"gen":{"FR":{"nuclear":-20000}}}
 /api/grid?shocks={"load":{"PL":5000}}
 /api/grid?shocks={"line":{"DE-AT":0.5}}
+/api/grid?shocks={"pst":{"DE-PL":-500}}     # PST target MW (null = neutral 0°)
 ```
 
 ---
@@ -283,10 +294,12 @@ python3 test_e2e.py                  # full pipeline, mocked API
 python3 test_realdata_regression.py  # real-data edge cases
 python3 test_calibration.py          # calibration ground truth
 python3 test_battery.py              # battery storage: 37 assertions
+python3 test_pst.py                  # phase-shifting transformers: 22 assertions
 
 node test_dlr_thermal.js             # DLR thermal physics: 20 assertions
 node test_weather_loader.js          # Open-Meteo loader: 16 assertions
 node test_dlr_calibration.js         # DLR × A11 interaction: 10 assertions
+node test_pst.js                     # browser PST controller: 7 assertions
 ```
 
 All suites run without network access (the JS suites use a minimal DOM stub
@@ -316,7 +329,7 @@ require Node and can be added to the workflow.
 | Limitation | Detail |
 |---|---|
 | **Absolute MW values are indicative** | Susceptances are calibrated estimates, not measured reactances. Flow directions and redistribution patterns are qualitatively correct; exact MW values are not. |
-| **Zonal aggregation** | Each bidding zone is a single bus. Within-zone congestion, transformer taps, and reactive power are not modelled. |
+| **Zonal aggregation** | Each bidding zone is a single bus. Within-zone congestion, transformer taps, and reactive power are not modelled. PSTs are modelled only on DE–PL; their range is a plausibility assumption, not the asset rating. |
 | **A75 reporting threshold** | Only plants above ~100 MW are reported. Distributed PV and small-scale generation are systematically underrepresented. |
 | **Open balance** | Flows to/from GB (post-Brexit), Ukraine, Morocco, and non-modelled Balkan neighbours are not closed. The residual is reported as `external_balance_mw` and absorbed by the distributed slack — never silently discarded. |
 | **Static snapshot** | Single operating point, not a dynamic simulation. Transient stability, voltage control, and relay behaviour are outside scope. |

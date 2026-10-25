@@ -776,6 +776,7 @@ class Calibration:
 
     def __init__(self):
         self.dc_setpoints: dict = {}
+        self.pst_targets: dict = {}     # (a,b) -> gemessener Fluss = PST-Sollwert
         self.suscept_scale: dict = {}
         self.zone_adjust: dict = {}
         self.ntc_raise: dict = {}       # (a,b,label) -> angehobene NTC MW
@@ -789,6 +790,8 @@ class Calibration:
     def apply(self, g: GridModel):
         for (a, b, label), mw in self.dc_setpoints.items():
             g.set_dc(a, b, mw, label)
+        for (a, b), mw in self.pst_targets.items():
+            g.set_pst(a, b, mw)
         g.suscept_scale = dict(self.suscept_scale)      # vom Modell gelesen
         g.ntc_override = dict(self.ntc_raise)
         for z, mw in self.zone_adjust.items():
@@ -837,6 +840,7 @@ class Calibration:
         self.ts = target
         self.n_measured = len(measured)
         self.dc_setpoints.clear()
+        self.pst_targets.clear()
         self.zone_adjust.clear()
         # suscept_scale wird NICHT geleert: Der Fit ist iterativ – er setzt
         # auf den zuletzt gelernten Faktoren auf. Grenzen, die diesmal keine
@@ -850,6 +854,10 @@ class Calibration:
             key = (ln.a, ln.b, ln.label or None)
             if ln.kind == "DC" and key in measured:
                 self.dc_setpoints[key] = measured[key]
+            # PST-Leitung: Der Betreiber hält den Fluss per Phasenwinkel –
+            # der Messwert IST der Sollwert, nicht Ergebnis der Suszeptanz
+            if ln.kind == "AC" and ln.pst > 0 and key in measured:
+                self.pst_targets[(ln.a, ln.b)] = measured[key]
 
         # (2) Unmodellierte Injektion je Zone:
         #     gemessene Netto-Position − Modell-Netto-Position
@@ -903,7 +911,7 @@ class Calibration:
 
         # (3) Suszeptanz-Fit (iterativ, gedämpft)
         ac_meas = {(a, b): mw for (a, b, label), mw in measured.items()
-                   if label is None}
+                   if label is None and (a, b) not in self.pst_targets}
         g = GridModel()
         self.apply(g)
         for _ in range(self.ITERATIONS):
@@ -951,6 +959,7 @@ class Calibration:
         self.last_summary = {
             "n_measured": self.n_measured,
             "n_dc_set": len(self.dc_setpoints),
+            "n_pst_set": len(self.pst_targets),
             "n_scaled": len(self.suscept_scale),
             "n_zone_adjust": len(self.zone_adjust),
             "mean_abs_error_mw": int(sum(err_abs) / len(err_abs)) if err_abs else None,
@@ -1098,6 +1107,10 @@ def solve_live(shocks: dict | None = None) -> dict:
                 a, _, b = key.partition("-")
                 if a and b:
                     g.shock_line(a, b, float(factor))
+            for key, mw in (shocks.get("pst") or {}).items():
+                a, _, b = key.partition("-")
+                if a and b:
+                    g.set_pst(a, b, None if mw is None else float(mw))
 
         res = g.solve()
     # _GRID_LOCK released — ZONES are no longer being read or written
@@ -1160,6 +1173,8 @@ def solve_live(shocks: dict | None = None) -> dict:
         res["dc_setpoints"] = {
             f"{a}-{b}" + (f" [{l}]" if l else ""): int(v)
             for (a, b, l), v in CALIBRATION.dc_setpoints.items()}
+        res["pst_targets"] = {f"{a}-{b}": int(round(v))
+                              for (a, b), v in CALIBRATION.pst_targets.items()}
         res["suscept_scale"] = {f"{a}-{b}": round(v, 3)
                                 for (a, b), v in CALIBRATION.suscept_scale.items()}
         res["zone_injection"] = {z: int(v)
@@ -1353,6 +1368,10 @@ def register(app, entsoe_key: str | None = None, http=None,
                 a, _, b = key.partition("-")
                 if a and b:
                     g.shock_line(a, b, float(factor))
+            for key, mw in (sh.get("pst") or {}).items():
+                a, _, b = key.partition("-")
+                if a and b:
+                    g.set_pst(a, b, None if mw is None else float(mw))
         return jsonify(n_minus_1(g))
 
     @app.route("/grid")

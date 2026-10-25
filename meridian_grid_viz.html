@@ -567,6 +567,13 @@ const STRINGS = {
     ctl_cap:      "Available capacity",
     ctl_cut:      "CUT LINE",
     ctl_restore:  "RESTORE",
+    pst_tag:      "Phase-shifting transformers hold the flow by angle",
+    pst_target:   "Target flow",
+    pst_shift:    "shift",
+    pst_sat:      "at limit",
+    pst_neutral:  "Neutral (0°)",
+    pst_btn_neutral:"NEUTRAL 0°",
+    pst_btn_hold: "HOLD CURRENT FLOW",
     ctl_ntc:      "Nominal capacity (NTC)",
     ctl_ntc_reset:"DEFAULT",
     ctl_ntc_custom:"custom",
@@ -802,6 +809,13 @@ const STRINGS = {
     ctl_cap:      "Verfügbare Kapazität",
     ctl_cut:      "LEITUNG KAPPEN",
     ctl_restore:  "WIEDERHERSTELLEN",
+    pst_tag:      "Phasenschieber halten den Fluss per Winkel",
+    pst_target:   "Sollfluss",
+    pst_shift:    "Verschiebung",
+    pst_sat:      "am Anschlag",
+    pst_neutral:  "Neutral (0°)",
+    pst_btn_neutral:"NEUTRAL 0°",
+    pst_btn_hold: "FLUSS HALTEN",
     ctl_ntc:      "Nennkapazität (NTC)",
     ctl_ntc_reset:"STANDARD",
     ctl_ntc_custom:"angepasst",
@@ -1039,6 +1053,13 @@ const STRINGS = {
     ctl_cap:      "Capacidade disponível",
     ctl_cut:      "CORTAR LINHA",
     ctl_restore:  "REPOR",
+    pst_tag:      "Transformadores desfasadores fixam o trânsito pelo ângulo",
+    pst_target:   "Trânsito alvo",
+    pst_shift:    "desvio",
+    pst_sat:      "no limite",
+    pst_neutral:  "Neutro (0°)",
+    pst_btn_neutral:"NEUTRO 0°",
+    pst_btn_hold: "MANTER TRÂNSITO",
     ctl_ntc:      "Capacidade nominal (NTC)",
     ctl_ntc_reset:"PREDEFINIÇÃO",
     ctl_ntc_custom:"personalizado",
@@ -1892,7 +1913,7 @@ function clearCascade(){
   recompute();
 }
 const ZONES={"FR":{"name":"Frankreich","sync":"CE","lat":46.6,"lon":2.4,"load":58000,"gen":{"nuclear":45000,"coal":0,"gas":3000,"hydro":9000,"wind":4000,"solar":1000,"biomass":1000,"other":0}},"DE":{"name":"Deutschland","sync":"CE","lat":51.2,"lon":10.4,"load":62000,"gen":{"nuclear":0,"coal":14000,"gas":8000,"hydro":3000,"wind":28000,"solar":6000,"biomass":5000,"other":0}},"NL":{"name":"Niederlande","sync":"CE","lat":52.2,"lon":5.3,"load":13000,"gen":{"nuclear":0,"coal":1500,"gas":6000,"hydro":0,"wind":3500,"solar":1000,"biomass":0,"other":500}},"BE":{"name":"Belgien","sync":"CE","lat":50.6,"lon":4.6,"load":9500,"gen":{"nuclear":4000,"coal":0,"gas":2500,"hydro":0,"wind":1500,"solar":700,"biomass":0,"other":300}},"CH":{"name":"Schweiz","sync":"CE","lat":46.9,"lon":8.2,"load":7000,"gen":{"nuclear":2200,"coal":0,"gas":0,"hydro":5500,"wind":0,"solar":200,"biomass":0,"other":100}},"AT":{"name":"Österreich","sync":"CE","lat":47.6,"lon":14.1,"load":8000,"gen":{"nuclear":0,"coal":0,"gas":900,"hydro":6000,"wind":1000,"solar":200,"biomass":100,"other":0}},"IT":{"name":"Italien","sync":"CE","lat":43.5,"lon":11.5,"load":44000,"gen":{"nuclear":0,"coal":1000,"gas":21000,"hydro":7000,"wind":2500,"solar":6000,"biomass":0,"other":2500}},"SI":{"name":"Slowenien","sync":"CE","lat":46.1,"lon":14.8,"load":1600,"gen":{"nuclear":700,"coal":300,"gas":0,"hydro":600,"wind":0,"solar":0,"biomass":0,"other":100}},"HR":{"name":"Kroatien","sync":"CE","lat":45.3,"lon":15.9,"load":2200,"gen":{"nuclear":0,"coal":0,"gas":400,"hydro":1200,"wind":300,"solar":0,"biomass":0,"other":100}},"CZ":{"name":"Tschechien","sync":"CE","lat":49.8,"lon":15.5,"load":8000,"gen":{"nuclear":3800,"coal":3000,"gas":500,"hydro":0,"wind":0,"solar":800,"biomass":0,"other":700}},"SK":{"name":"Slowakei","sync":"CE","lat":48.7,"lon":19.7,"load":3200,"gen":{"nuclear":1900,"coal":0,"gas":500,"hydro":700,"wind":0,"solar":0,"biomass":0,"other":300}},"HU":{"name":"Ungarn","sync":"CE","lat":47.2,"lon":19.4,"load":5500,"gen":{"nuclear":1900,"coal":0,"gas":1200,"hydro":0,"wind":0,"solar":800,"biomass":0,"other":300}},"PL":{"name":"Polen","sync":"CE","lat":52.1,"lon":19.4,"load":22000,"gen":{"nuclear":0,"coal":16000,"gas":2000,"hydro":0,"wind":3000,"solar":1000,"biomass":0,"other":500}},"RO":{"name":"Rumänien","sync":"CE","lat":45.9,"lon":25.0,"load":7500,"gen":{"nuclear":1300,"coal":1200,"gas":1500,"hydro":2500,"wind":1000,"solar":500,"biomass":0,"other":0}},"BG":{"name":"Bulgarien","sync":"CE","lat":42.7,"lon":25.3,"load":4500,"gen":{"nuclear":2000,"coal":1500,"gas":300,"hydro":800,"wind":0,"solar":400,"biomass":0,"other":0}},"GR":{"name":"Griechenland","sync":"CE","lat":39.3,"lon":22.5,"load":6500,"gen":{"nuclear":0,"coal":300,"gas":3000,"hydro":1200,"wind":1500,"solar":1500,"biomass":0,"other":200}},"RS":{"name":"Serbien","sync":"CE","lat":44.2,"lon":20.9,"load":4500,"gen":{"nuclear":0,"coal":3000,"gas":300,"hydro":1400,"wind":0,"solar":0,"biomass":0,"other":0}},"BA":{"name":"Bosnien-H.","sync":"CE","lat":44.2,"lon":17.8,"load":1700,"gen":{"nuclear":0,"coal":1100,"gas":0,"hydro":700,"wind":0,"solar":0,"biomass":0,"other":0}},"ME":{"name":"Montenegro","sync":"CE","lat":42.7,"lon":19.3,"load":550,"gen":{"nuclear":0,"coal":220,"gas":0,"hydro":350,"wind":0,"solar":0,"biomass":0,"other":0}},"MK":{"name":"Nordmazedon.","sync":"CE","lat":41.6,"lon":21.7,"load":1100,"gen":{"nuclear":0,"coal":500,"gas":250,"hydro":250,"wind":0,"solar":0,"biomass":0,"other":150}},"AL":{"name":"Albanien","sync":"CE","lat":41.1,"lon":20.0,"load":1000,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":1050,"wind":0,"solar":0,"biomass":0,"other":0}},"ES":{"name":"Spanien","sync":"CE","lat":40.3,"lon":-3.7,"load":30000,"gen":{"nuclear":6000,"coal":0,"gas":6000,"hydro":4000,"wind":8000,"solar":6000,"biomass":0,"other":1000}},"PT":{"name":"Portugal","sync":"CE","lat":39.6,"lon":-8.0,"load":6000,"gen":{"nuclear":0,"coal":0,"gas":1500,"hydro":1500,"wind":2000,"solar":1000,"biomass":0,"other":200}},"DK1":{"name":"Dänemark W","sync":"CE","lat":56.0,"lon":9.2,"load":2400,"gen":{"nuclear":0,"coal":300,"gas":300,"hydro":0,"wind":2600,"solar":0,"biomass":500,"other":0}},"EE":{"name":"Estland","sync":"CE","lat":58.8,"lon":25.5,"load":950,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":0,"wind":250,"solar":150,"biomass":150,"other":500}},"LV":{"name":"Lettland","sync":"CE","lat":56.9,"lon":24.9,"load":800,"gen":{"nuclear":0,"coal":0,"gas":300,"hydro":500,"wind":100,"solar":0,"biomass":0,"other":0}},"LT":{"name":"Litauen","sync":"CE","lat":55.3,"lon":23.9,"load":1500,"gen":{"nuclear":0,"coal":0,"gas":200,"hydro":100,"wind":500,"solar":200,"biomass":0,"other":100}},"NO1":{"name":"Norwegen SO","sync":"N","lat":60.5,"lon":10.8,"load":4500,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":4200,"wind":100,"solar":0,"biomass":0,"other":0}},"NO2":{"name":"Norwegen SW","sync":"N","lat":58.5,"lon":7.5,"load":4200,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":6500,"wind":300,"solar":0,"biomass":0,"other":0}},"NO3":{"name":"Norwegen Mi","sync":"N","lat":63.5,"lon":10.0,"load":2600,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2300,"wind":400,"solar":0,"biomass":0,"other":0}},"NO4":{"name":"Norwegen N","sync":"N","lat":68.5,"lon":17.0,"load":1900,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2400,"wind":400,"solar":0,"biomass":0,"other":0}},"NO5":{"name":"Norwegen W","sync":"N","lat":60.9,"lon":6.2,"load":1900,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2800,"wind":0,"solar":0,"biomass":0,"other":0}},"SE1":{"name":"Schweden N","sync":"N","lat":66.5,"lon":20.5,"load":1300,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":2800,"wind":700,"solar":0,"biomass":0,"other":0}},"SE2":{"name":"Schweden NMi","sync":"N","lat":62.8,"lon":15.5,"load":1500,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":3200,"wind":1300,"solar":0,"biomass":0,"other":0}},"SE3":{"name":"Schweden SMi","sync":"N","lat":59.5,"lon":15.5,"load":9500,"gen":{"nuclear":6100,"coal":0,"gas":0,"hydro":1200,"wind":1800,"solar":300,"biomass":0,"other":0}},"SE4":{"name":"Schweden S","sync":"N","lat":56.5,"lon":14.2,"load":2600,"gen":{"nuclear":0,"coal":0,"gas":0,"hydro":0,"wind":1000,"solar":200,"biomass":0,"other":400}},"FI":{"name":"Finnland","sync":"N","lat":62.5,"lon":26.0,"load":9500,"gen":{"nuclear":4400,"coal":0,"gas":0,"hydro":1500,"wind":2200,"solar":0,"biomass":1200,"other":400}},"DK2":{"name":"Dänemark O","sync":"N","lat":55.5,"lon":11.9,"load":1600,"gen":{"nuclear":0,"coal":200,"gas":0,"hydro":0,"wind":1000,"solar":0,"biomass":400,"other":0}},"GB":{"name":"Großbritan.","sync":"GB","lat":53.0,"lon":-1.8,"load":32000,"gen":{"nuclear":4500,"coal":0,"gas":14000,"hydro":0,"wind":9000,"solar":1500,"biomass":2500,"other":800}},"IE":{"name":"Irland (SEM)","sync":"IE","lat":53.3,"lon":-7.8,"load":5200,"gen":{"nuclear":0,"coal":200,"gas":2800,"hydro":0,"wind":1800,"solar":0,"biomass":0,"other":500}}};
-const LINES=[["FR","DE",12.0,4800,"AC",0.0,""],["FR","BE",9.0,4300,"AC",0.0,""],["FR","CH",10.0,4350,"AC",0.0,""],["FR","IT",8.0,4350,"AC",0.0,""],["FR","ES",8.0,2800,"AC",0.0,""],["DE","NL",11.0,5000,"AC",0.0,""],["DE","CH",9.0,4600,"AC",0.0,""],["DE","AT",14.0,5400,"AC",0.0,""],["DE","CZ",10.0,2100,"AC",0.0,""],["DE","PL",7.0,3000,"AC",0.0,""],["NL","BE",8.0,3700,"AC",0.0,""],["CH","AT",7.0,1700,"AC",0.0,""],["CH","IT",10.0,4240,"AC",0.0,""],["AT","IT",2.0,755,"AC",0.0,""],["AT","CZ",6.0,1650,"AC",0.0,""],["AT","HU",7.0,2050,"AC",0.0,""],["AT","SI",6.0,1600,"AC",0.0,""],["CZ","SK",8.0,2150,"AC",0.0,""],["CZ","PL",6.0,2050,"AC",0.0,""],["SK","HU",7.0,2450,"AC",0.0,""],["SK","PL",4.0,900,"AC",0.0,""],["HU","SI",4.0,600,"AC",0.0,""],["HU","HR",5.0,1850,"AC",0.0,""],["SI","HR",5.0,1650,"AC",0.0,""],["SI","IT",4.0,1050,"AC",0.0,""],["ES","PT",9.0,4450,"AC",0.0,""],["DE","BE",0.0,1000,"DC",300,"ALEGrO"],["HU","RO",6.0,1300,"AC",0.0,""],["HU","RS",5.0,1200,"AC",0.0,""],["HR","RS",4.0,750,"AC",0.0,""],["HR","BA",5.0,1000,"AC",0.0,""],["RS","BA",4.0,700,"AC",0.0,""],["RS","RO",4.0,1000,"AC",0.0,""],["RS","BG",4.0,1550,"AC",0.0,""],["RS","ME",3.0,600,"AC",0.0,""],["RS","MK",3.0,550,"AC",0.0,""],["RO","BG",5.0,2250,"AC",0.0,""],["BG","GR",4.0,800,"AC",0.0,""],["BG","MK",3.0,500,"AC",0.0,""],["GR","MK",3.0,650,"AC",0.0,""],["GR","AL",3.0,400,"AC",0.0,""],["ME","AL",3.0,500,"AC",0.0,""],["ME","BA",3.0,550,"AC",0.0,""],["IT","GR",0.0,500,"DC",-150,"GRITA"],["IT","ME",0.0,600,"DC",-250,"MONITA"],["DE","DK1",6.0,3500,"AC",0.0,""],["DK1","NL",0.0,700,"DC",200,"COBRAcable"],["PL","LT",4.0,500,"AC",0.0,""],["LT","LV",5.0,1300,"AC",0.0,""],["LV","EE",5.0,1100,"AC",0.0,""],["NO1","NO2",8.0,3500,"AC",0.0,""],["NO1","NO3",3.0,700,"AC",0.0,""],["NO1","NO5",7.0,3900,"AC",0.0,""],["NO2","NO5",3.0,600,"AC",0.0,""],["NO3","NO4",5.0,1200,"AC",0.0,""],["NO3","NO5",4.0,500,"AC",0.0,""],["NO1","SE3",6.0,2100,"AC",0.0,""],["NO3","SE2",4.0,1000,"AC",0.0,""],["NO4","SE1",4.0,700,"AC",0.0,""],["NO4","SE2",3.0,300,"AC",0.0,""],["SE1","SE2",8.0,3300,"AC",0.0,""],["SE2","SE3",9.0,7300,"AC",0.0,""],["SE3","SE4",8.0,5400,"AC",0.0,""],["SE1","FI",5.0,1900,"AC",0.0,""],["SE3","FI",4.0,1200,"AC",0.0,""],["SE4","DK2",6.0,1700,"AC",0.0,""],["DK1","DK2",0.0,600,"DC",200,"Storebælt"],["DK1","NO2",0.0,1700,"DC",-800,"Skagerrak"],["DK1","SE3",0.0,740,"DC",-300,"Konti-Skan"],["DE","DK2",0.0,1000,"DC",-300,"Kontek/Kriegers Flak"],["DE","SE4",0.0,615,"DC",-300,"Baltic Cable"],["PL","SE4",0.0,600,"DC",-200,"SwePol"],["DE","NO2",0.0,1400,"DC",-900,"NordLink"],["NL","NO2",0.0,700,"DC",-500,"NorNed"],["LT","SE4",0.0,700,"DC",-250,"NordBalt"],["EE","FI",0.0,1000,"DC",-350,"EstLink 1+2"],["FR","GB",0.0,4000,"DC",1500,"IFA/IFA2/ElecLink"],["BE","GB",0.0,1000,"DC",300,"Nemo Link"],["NL","GB",0.0,1000,"DC",300,"BritNed"],["DK1","GB",0.0,1400,"DC",500,"Viking Link"],["NO2","GB",0.0,1400,"DC",800,"North Sea Link"],["GB","IE",0.0,1000,"DC",300,"EWIC/Greenlink"],["GB","IE",0.0,500,"DC",150,"Moyle"]];
+const LINES=[["FR","DE",12.0,4800,"AC",0.0,""],["FR","BE",9.0,4300,"AC",0.0,""],["FR","CH",10.0,4350,"AC",0.0,""],["FR","IT",8.0,4350,"AC",0.0,""],["FR","ES",8.0,2800,"AC",0.0,""],["DE","NL",11.0,5000,"AC",0.0,""],["DE","CH",9.0,4600,"AC",0.0,""],["DE","AT",14.0,5400,"AC",0.0,""],["DE","CZ",10.0,2100,"AC",0.0,""],["DE","PL",7.0,3000,"AC",0.0,"",3000],["NL","BE",8.0,3700,"AC",0.0,""],["CH","AT",7.0,1700,"AC",0.0,""],["CH","IT",10.0,4240,"AC",0.0,""],["AT","IT",2.0,755,"AC",0.0,""],["AT","CZ",6.0,1650,"AC",0.0,""],["AT","HU",7.0,2050,"AC",0.0,""],["AT","SI",6.0,1600,"AC",0.0,""],["CZ","SK",8.0,2150,"AC",0.0,""],["CZ","PL",6.0,2050,"AC",0.0,""],["SK","HU",7.0,2450,"AC",0.0,""],["SK","PL",4.0,900,"AC",0.0,""],["HU","SI",4.0,600,"AC",0.0,""],["HU","HR",5.0,1850,"AC",0.0,""],["SI","HR",5.0,1650,"AC",0.0,""],["SI","IT",4.0,1050,"AC",0.0,""],["ES","PT",9.0,4450,"AC",0.0,""],["DE","BE",0.0,1000,"DC",300,"ALEGrO"],["HU","RO",6.0,1300,"AC",0.0,""],["HU","RS",5.0,1200,"AC",0.0,""],["HR","RS",4.0,750,"AC",0.0,""],["HR","BA",5.0,1000,"AC",0.0,""],["RS","BA",4.0,700,"AC",0.0,""],["RS","RO",4.0,1000,"AC",0.0,""],["RS","BG",4.0,1550,"AC",0.0,""],["RS","ME",3.0,600,"AC",0.0,""],["RS","MK",3.0,550,"AC",0.0,""],["RO","BG",5.0,2250,"AC",0.0,""],["BG","GR",4.0,800,"AC",0.0,""],["BG","MK",3.0,500,"AC",0.0,""],["GR","MK",3.0,650,"AC",0.0,""],["GR","AL",3.0,400,"AC",0.0,""],["ME","AL",3.0,500,"AC",0.0,""],["ME","BA",3.0,550,"AC",0.0,""],["IT","GR",0.0,500,"DC",-150,"GRITA"],["IT","ME",0.0,600,"DC",-250,"MONITA"],["DE","DK1",6.0,3500,"AC",0.0,""],["DK1","NL",0.0,700,"DC",200,"COBRAcable"],["PL","LT",4.0,500,"AC",0.0,""],["LT","LV",5.0,1300,"AC",0.0,""],["LV","EE",5.0,1100,"AC",0.0,""],["NO1","NO2",8.0,3500,"AC",0.0,""],["NO1","NO3",3.0,700,"AC",0.0,""],["NO1","NO5",7.0,3900,"AC",0.0,""],["NO2","NO5",3.0,600,"AC",0.0,""],["NO3","NO4",5.0,1200,"AC",0.0,""],["NO3","NO5",4.0,500,"AC",0.0,""],["NO1","SE3",6.0,2100,"AC",0.0,""],["NO3","SE2",4.0,1000,"AC",0.0,""],["NO4","SE1",4.0,700,"AC",0.0,""],["NO4","SE2",3.0,300,"AC",0.0,""],["SE1","SE2",8.0,3300,"AC",0.0,""],["SE2","SE3",9.0,7300,"AC",0.0,""],["SE3","SE4",8.0,5400,"AC",0.0,""],["SE1","FI",5.0,1900,"AC",0.0,""],["SE3","FI",4.0,1200,"AC",0.0,""],["SE4","DK2",6.0,1700,"AC",0.0,""],["DK1","DK2",0.0,600,"DC",200,"Storebælt"],["DK1","NO2",0.0,1700,"DC",-800,"Skagerrak"],["DK1","SE3",0.0,740,"DC",-300,"Konti-Skan"],["DE","DK2",0.0,1000,"DC",-300,"Kontek/Kriegers Flak"],["DE","SE4",0.0,615,"DC",-300,"Baltic Cable"],["PL","SE4",0.0,600,"DC",-200,"SwePol"],["DE","NO2",0.0,1400,"DC",-900,"NordLink"],["NL","NO2",0.0,700,"DC",-500,"NorNed"],["LT","SE4",0.0,700,"DC",-250,"NordBalt"],["EE","FI",0.0,1000,"DC",-350,"EstLink 1+2"],["FR","GB",0.0,4000,"DC",1500,"IFA/IFA2/ElecLink"],["BE","GB",0.0,1000,"DC",300,"Nemo Link"],["NL","GB",0.0,1000,"DC",300,"BritNed"],["DK1","GB",0.0,1400,"DC",500,"Viking Link"],["NO2","GB",0.0,1400,"DC",800,"North Sea Link"],["GB","IE",0.0,1000,"DC",300,"EWIC/Greenlink"],["GB","IE",0.0,500,"DC",150,"Moyle"]];
 /* === END TOPOLOGY === */
 
 const CODES=Object.keys(ZONES);
@@ -1901,6 +1922,10 @@ const LKEY=l=>l[0]+"-"+l[1]+(l[6]?"|"+l[6]:"");
 
 /* ── Shock State ── */
 let genShock={},loadShock={},lineDerate={},dcSet={},ntcOverride={};
+// PST target per AC line key (MW, + = a→b; null = neutral). Unset: live target l._pst, else neutral.
+let pstSet={};
+function pstTarget(l){const k=LKEY(l);
+  if(pstSet[k]!==undefined)return pstSet[k];return l._pst!==undefined?l._pst:null;}
 function baseNtc(l){const k=LKEY(l);return ntcOverride[k]!==undefined?ntcOverride[k]:l[3];}
 let selected={type:null,key:null};
 
@@ -1952,26 +1977,14 @@ function solve(){
     ids.forEach(i=>{const a=cs?cap[i]/cs:1/ids.length;
       reg[i]=-a*imb;P[i]+=reg[i];});
   });
-  const theta=new Array(n).fill(0);
-  islands.forEach(isl=>{
-    if(isl.length<2)return;
-    const mi={};isl.forEach((c,k)=>mi[c]=k);
-    const m=isl.length;
-    const B=Array.from({length:m},()=>new Array(m).fill(0));
-    LINES.forEach(l=>{if(l[4]!=="AC")return;
-      if(!(l[0]in mi)||!(l[1]in mi))return;
-      const b=l[2]*lineFactor(l);if(b<1e-9)return;
-      const i=mi[l[0]],j=mi[l[1]];
-      B[i][i]+=b;B[j][j]+=b;B[i][j]-=b;B[j][i]-=b;});
-    const keep=[...Array(m).keys()].slice(1);
-    const A=keep.map(gi=>keep.map(gj=>B[gi][gj]));
-    const rhs=keep.map(gi=>P[idx[isl[gi]]]);
-    const x=gauss(A,rhs);
-    keep.forEach((gi,ii)=>theta[idx[isl[gi]]]=x[ii]);
-  });
+  // PST: shift x per active PST so its line holds the target (F = b·Δθ + x)
+  const pst=pstControl(P,islands,idx);
+  const Peff=P.slice();
+  for(const k in pst.x){const l=pst.line[k];Peff[idx[l[0]]]-=pst.x[k];Peff[idx[l[1]]]+=pst.x[k];}
+  const theta=thetaOf(Peff,islands,idx);
   const flows=LINES.map(l=>{
     let f;
-    if(l[4]==="AC")f=l[2]*lineFactor(l)*(theta[idx[l[0]]]-theta[idx[l[1]]]);
+    if(l[4]==="AC")f=l[2]*lineFactor(l)*(theta[idx[l[0]]]-theta[idx[l[1]]])+(pst.x[LKEY(l)]||0);
     else f=dcF[LKEY(l)];
     const dlrMult=lineDLR(l); // per-line DLR: HVDC→1.0, AC→type+weather specific
     const nomNtc=baseNtc(l);
@@ -1979,7 +1992,7 @@ function solve(){
     const util=effNtc>1e-9?Math.abs(f)/effNtc:0;
     return{a:l[0],b:l[1],kind:l[4],label:l[6]||null,ntc:effNtc,ntcBase:nomNtc,dlr:dlrMult,type:lineType(l),
       flow:f,abs:Math.abs(f),from:f>=0?l[0]:l[1],to:f>=0?l[1]:l[0],
-      util,over:util>1.001,cut:effNtc<1e-9};
+      util,over:util>1.001,cut:effNtc<1e-9,pst:pst.info[LKEY(l)]||null};
   });
   const zones={};
   CODES.forEach(c=>{const{gsum,load}=effGenLoad(c);const phys=P[idx[c]];
@@ -2014,6 +2027,60 @@ function solve(){
     }
   }
   return result;
+}
+function thetaOf(P,islands,idx){
+  const theta=new Array(CODES.length).fill(0);
+  islands.forEach(isl=>{
+    if(isl.length<2)return;
+    const mi={};isl.forEach((c,k)=>mi[c]=k);
+    const m=isl.length;
+    const B=Array.from({length:m},()=>new Array(m).fill(0));
+    LINES.forEach(l=>{if(l[4]!=="AC")return;
+      if(!(l[0]in mi)||!(l[1]in mi))return;
+      const b=l[2]*lineFactor(l);if(b<1e-9)return;
+      const i=mi[l[0]],j=mi[l[1]];
+      B[i][i]+=b;B[j][j]+=b;B[i][j]-=b;B[j][i]-=b;});
+    const keep=[...Array(m).keys()].slice(1);
+    const A=keep.map(gi=>keep.map(gj=>B[gi][gj]));
+    const rhs=keep.map(gi=>P[idx[isl[gi]]]);
+    const x=gauss(A,rhs);
+    keep.forEach((gi,ii)=>theta[idx[isl[gi]]]=x[ii]);
+  });
+  return theta;
+}
+/* PST control — mirrors GridModel._pst_control(): linear F = F0 + S·x,
+   solve for the targets, pin saturated PSTs at their range, re-solve rest. */
+function pstControl(P,islands,idx){
+  const act=[],info={},line={};
+  LINES.forEach(l=>{if(l[4]!=="AC"||!(l[7]>0))return;
+    const k=LKEY(l),b=l[2]*lineFactor(l),t=pstTarget(l),rng=l[7]*lineFactor(l);
+    line[k]=l;
+    info[k]={target:t,shift:0,range:rng,sat:false};
+    if(b<1e-9||t===null||rng<1e-9)return;
+    act.push({k,l,b,t:+t,rng});});
+  const x={};
+  if(!act.length)return{x,info,line};
+  const fl=(th,xs)=>act.map((p,i)=>p.b*(th[idx[p.l[0]]]-th[idx[p.l[1]]])+xs[i]);
+  const K=act.length,zero=new Array(K).fill(0);
+  const f0=fl(thetaOf(P,islands,idx),zero);
+  const S=act.map(()=>new Array(K).fill(0));
+  act.forEach((p,j)=>{const e=new Array(CODES.length).fill(0);
+    e[idx[p.l[0]]]-=1;e[idx[p.l[1]]]+=1;
+    const u=zero.slice();u[j]=1;
+    fl(thetaOf(e,islands,idx),u).forEach((v,i)=>S[i][j]=v);});
+  const xs=zero.slice(),fixed=new Array(K).fill(false);
+  for(let it=0;it<=K;it++){
+    const fr=[...Array(K).keys()].filter(i=>!fixed[i]);
+    const fx=[...Array(K).keys()].filter(i=>fixed[i]);
+    const A=fr.map(i=>fr.map(j=>S[i][j]));
+    const rhs=fr.map(i=>act[i].t-f0[i]-fx.reduce((s,j)=>s+S[i][j]*xs[j],0));
+    gauss(A,rhs).forEach((v,ii)=>xs[fr[ii]]=v);
+    const over=fr.filter(i=>Math.abs(xs[i])>act[i].rng);
+    if(!over.length)break;
+    over.forEach(i=>{xs[i]=Math.sign(xs[i])*act[i].rng;fixed[i]=true;});
+  }
+  act.forEach((p,i)=>{x[p.k]=xs[i];info[p.k].shift=xs[i];info[p.k].sat=fixed[i];});
+  return{x,info,line};
 }
 function gauss(A,b){
   const n=b.length;if(!n)return[];
@@ -2090,6 +2157,11 @@ async function loadLive(){
       LINES.forEach(l=>{if(l[4]!=="DC")return;
         const k=l[0]+"-"+l[1]+(l[6]?" ["+l[6]+"]":"");
         if(k in d.dc_setpoints)l[5]=d.dc_setpoints[k];});
+    }
+    if(d.pst_targets){
+      LINES.forEach(l=>{if(!(l[7]>0))return;
+        const k=l[0]+"-"+l[1];
+        if(k in d.pst_targets)l._pst=d.pst_targets[k];});
     }
     if(d.suscept_scale){
       LINES.forEach(l=>{if(l[4]!=="AC")return;
@@ -2372,13 +2444,13 @@ let BASELINE=null;
 function shocksActive(){
   return Object.keys(genShock).length>0||Object.keys(loadShock).length>0||
          Object.keys(lineDerate).length>0||Object.keys(dcSet).length>0||
-         Object.keys(ntcOverride).length>0;
+         Object.keys(ntcOverride).length>0||Object.keys(pstSet).length>0;
 }
 function solveBaseline(){
-  const g=genShock,ls=loadShock,ld=lineDerate,dc=dcSet,no=ntcOverride;
-  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};
+  const g=genShock,ls=loadShock,ld=lineDerate,dc=dcSet,no=ntcOverride,ps=pstSet;
+  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};pstSet={};
   const r=solve();
-  genShock=g;loadShock=ls;lineDerate=ld;dcSet=dc;ntcOverride=no;
+  genShock=g;loadShock=ls;lineDerate=ld;dcSet=dc;ntcOverride=no;pstSet=ps;
   return r;
 }
 function refreshBaseline(){BASELINE=solveBaseline();MIXBASE=mixNow_unshocked();}
@@ -2496,6 +2568,21 @@ function buildControls(){
       h+=`<div class="btnrow" style="padding:4px 0 0">`+
          `<button onclick="onLine('${l[0]}','${l[1]}',0)">${T("ctl_cut")}</button>`+
          `<button onclick="onLine('${l[0]}','${l[1]}',100)">${T("ctl_restore")}</button></div>`;
+      if(l[7]>0&&f.pst){
+        const p=f.pst,tgt=p.target,ntcR=Math.round(nomNtc);
+        const st=tgt===null?T("pst_neutral"):`${T("pst_target")} ${tgt>=0?"+":""}${Math.round(tgt)} MW`;
+        h+=`<div class="ctl" style="border-top:1px solid var(--border2);padding-top:9px">`+
+           `<div class="selsub"><span class="dctag">PST</span> ${T("pst_tag")}<br>`+
+           `${st} · ${T("pst_shift")} ${p.shift>=0?"+":""}${Math.round(p.shift)} / ±${Math.round(p.range)} MW`+
+           `${p.sat?` · <span style="color:var(--bad)">${T("pst_sat")}</span>`:""}</div>`+
+           `<div class="slrow"><div class="lab"><span>${T("pst_target")}</span>`+
+           `<span class="amt" id="amt-pst">${tgt===null?"—":(tgt>=0?"+":"")+Math.round(tgt)+" MW"}</span></div>`+
+           `<input type="range" min="${-ntcR}" max="${ntcR}" step="50" value="${Math.round(tgt===null?f.flow:tgt)}" `+
+           `oninput="onPst('${key}',this.value)"></div>`+
+           `<div class="btnrow" style="padding:4px 0 0">`+
+           `<button onclick="onPst('${key}',null)">${T("pst_btn_neutral")}</button>`+
+           `<button onclick="onPst('${key}',${Math.round(f.flow)})">${T("pst_btn_hold")}</button></div></div>`;
+      }
       h+=`<div class="ctl" style="border-top:1px solid var(--border2);padding-top:9px">`+
          `<div class="lab" style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px">`+
          `<span>${T("ctl_ntc")}${ovAC?` <span class="ntc-custom-tag">(${T("ctl_ntc_custom")})</span>`:""}</span></div>`+
@@ -2553,6 +2640,12 @@ function onLine(a,b,pct){lineDerate[a+"-"+b]=(+pct)/100;
 function onDC(key,mw){dcSet[key]=+mw;
   const el=document.getElementById("amt-dc");
   if(el)el.textContent=(mw>=0?"+":"")+Math.round(mw)+" MW";
+  recompute();}
+function onPst(key,mw){
+  pstSet[key]=mw===null?null:+mw;
+  const el=document.getElementById("amt-pst");
+  if(el)el.textContent=mw===null?"—":(mw>=0?"+":"")+Math.round(mw)+" MW";
+  if(mw===null)buildControls();
   recompute();}
 function onNtcOverride(key,mw){
   mw=Math.max(0,Math.round(+mw)||0);
@@ -2663,7 +2756,7 @@ function preset(which){
   selected={type:null,key:null};buildControls();recompute();
 }
 function resetAll(keepSel){
-  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};
+  genShock={};loadShock={};lineDerate={};dcSet={};ntcOverride={};pstSet={};
   cascadeTrips={};cascadeLog=[];
   document.getElementById('cascadecard').style.display='none';
   for(const c in batteries){batteries[c].p_manual=0;batteries[c].p_freq=0;}
@@ -2771,6 +2864,10 @@ function buildExplainPrompt(res){
   }
   for(const k in dcSet){
     interventions.push(`HVDC ${k}: setpoint ${dcSet[k]>0?"+":""}${Math.round(dcSet[k])} MW`);
+  }
+  for(const k in pstSet){
+    interventions.push(pstSet[k]===null?`PST ${k}: neutral (0°)`
+      :`PST ${k}: target ${pstSet[k]>0?"+":""}${Math.round(pstSet[k])} MW`);
   }
 
   const bmap={};
