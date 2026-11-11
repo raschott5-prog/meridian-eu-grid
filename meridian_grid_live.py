@@ -309,6 +309,19 @@ TARGET_COVERAGE = 0.70   # Anteil Zonen, der am Zielzeitpunkt frisch sein soll
 MINOR_SHARE = 0.05
 MINOR_FLOOR_MW = 150.0
 
+# PLAUSIBILITÄT GEGEN DIE ZONE (nicht nur gegen die eigene Antwort)
+# Lehre vom 11.11.2026, 13:00 UTC: ENTSO-E lieferte für DE eine A75-Antwort,
+# in der NUR Wind Onshore vorkam (238 MW bei 67,7 GW Last). Die Prüfung oben
+# vergleicht jeden Typ nur mit seinem eigenen Verlauf – fehlen Kohle, Gas und
+# Solar in der Antwort ganz, "fehlt" für sie nichts. Ergebnis: −67 GW Bilanz,
+# AT–IT mit 1131 % Last. Darum zusätzlich: Liegt die gemeldete Erzeugung einer
+# großen Zone unter IMPLAUSIBLE_SHARE ihrer typischen (Default-)Erzeugung, gilt
+# der Schnitt als unvollständig und die Zone fällt sichtbar auf default zurück.
+# Kleine Importzonen (LT, LV, ME …) liegen real oft weit unter ihrem Default,
+# darum erst ab IMPLAUSIBLE_MIN_MW typischer Erzeugung.
+IMPLAUSIBLE_SHARE = 0.25
+IMPLAUSIBLE_MIN_MW = 2000.0
+
 
 def _typical_mw(gen_series: dict) -> tuple[dict, float]:
     """Median-MW je Typ über das Fenster + Summe (robust gegen Ausreißer)."""
@@ -1026,6 +1039,17 @@ class LiveGridState:
             zd = live.get(code)
             aligned = align_zone(zd, target) if (zd and zd.get("ok") and target) else None
 
+            implausible = None
+            if aligned:
+                gen_def, _ = self._defaults[code]
+                typ_mw = sum(gen_def.values())
+                live_mw = sum(float(mw or 0) for mw in aligned["generation"].values())
+                if typ_mw >= IMPLAUSIBLE_MIN_MW and live_mw < IMPLAUSIBLE_SHARE * typ_mw:
+                    implausible = (f"unplausibel: {live_mw:.0f} MW Erzeugung statt "
+                                   f"typisch {typ_mw:.0f} MW (ENTSO-E-Meldung unvollständig?)")
+                    log.warning("%s verworfen – %s", code, implausible)
+                    aligned = None
+
             if aligned:
                 g = {k: 0.0 for k in
                      ("nuclear", "coal", "gas", "hydro", "wind", "solar",
@@ -1050,7 +1074,9 @@ class LiveGridState:
                 z.base_gen = sum(gen_def.values())
                 z.base_load = load_def
                 reason = "keine Daten"
-                if zd and zd.get("ok") and target:
+                if implausible:
+                    reason = implausible
+                elif zd and zd.get("ok") and target:
                     reason = f"kein Wert innerhalb {MAX_FILL_MIN} min um Zielzeitpunkt"
                 zones_meta[code] = {"source": "default", "age_min": None,
                                     "ts": None, "fill_min": None,

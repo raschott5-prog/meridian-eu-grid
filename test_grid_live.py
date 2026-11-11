@@ -297,6 +297,37 @@ check("Baltikum-Insel: eigene Frequenz, dramatischer als Rest-CE",
 
 
 print("\n" + "=" * 66)
+print("  TEST  –  Unvollständige A75-Antwort (11.11.2026: DE nur Wind)")
+print("=" * 66)
+# ENTSO-E lieferte für DE nur "Wind Onshore" (238 MW) bei 67,7 GW Last –
+# die Typen-Prüfung merkt das nicht, weil Kohle/Gas/Solar gar nicht in der
+# Antwort stehen. Die Zone darf so NICHT als live ins Modell gehen.
+L.STATE._zones.clear()
+L.STATE.update({
+    "DE": mkseries({"Wind Onshore": 238}, 67650, 0, newest_ago=0),
+    "AT": mkseries({"Hydro Water Reservoir": 4000, "Fossil Gas": 2300,
+                    "Wind Onshore": 900}, 8400, 0, newest_ago=0),
+    # kleine Importzone: wenig Eigenerzeugung ist dort normal
+    "LT": mkseries({"Wind Onshore": 250}, 1500, 0, newest_ago=0),
+})
+meta = L.STATE.apply_to_model()
+check("DE mit 238 MW bei 67,7 GW Last → verworfen (default)",
+      meta["DE"]["source"] == "default", meta["DE"]["source"])
+check("Grund 'unplausibel' ausgewiesen",
+      "unplausibel" in meta["DE"].get("reason", ""), meta["DE"].get("reason", ""))
+check("DE fällt auf typische Erzeugung zurück, nicht auf 238 MW",
+      ZONES["DE"].base_gen > 20000, f"{ZONES['DE'].base_gen:.0f} MW")
+check("AT mit plausiblen Werten bleibt live",
+      meta["AT"]["source"] == "live", meta["AT"]["source"])
+check("Kleine Importzone LT mit wenig Erzeugung bleibt live",
+      meta["LT"]["source"] == "live", meta["LT"]["source"])
+_res = L.solve_live()
+_atit = [f for f in _res["flows"] if {f["a"], f["b"]} == {"AT", "IT"}][0]
+check("AT–IT nicht mehr absurd überlastet (< 300 %)",
+      _atit["util"] < 3.0, f"{_atit['util'] * 100:.0f} %")
+
+
+print("\n" + "=" * 66)
 if FAILS:
     print(f"  {len(FAILS)} TEST(S) FEHLGESCHLAGEN: {', '.join(FAILS)}")
     sys.exit(1)
