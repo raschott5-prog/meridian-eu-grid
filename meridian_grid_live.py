@@ -321,6 +321,12 @@ MINOR_FLOOR_MW = 150.0
 # darum erst ab IMPLAUSIBLE_MIN_MW typischer Erzeugung.
 IMPLAUSIBLE_SHARE = 0.25
 IMPLAUSIBLE_MIN_MW = 2000.0
+# Dasselbe für die LAST (11.11.2026, 14:15 UTC): IT meldete nur EINE von sechs
+# Teilzonen (12,2 GW statt ~39 GW). Die Teilzonen-Prüfung zählt nur innerhalb
+# der Antwort – fehlen die übrigen Reihen ganz, gilt eine als "voll". Last
+# schwankt viel weniger als Erzeugung (nachts selten unter ~60 % des Mittels),
+# darum eine höhere Schwelle.
+LOAD_IMPLAUSIBLE_SHARE = 0.40
 
 
 def _typical_mw(gen_series: dict) -> tuple[dict, float]:
@@ -1041,12 +1047,18 @@ class LiveGridState:
 
             implausible = None
             if aligned:
-                gen_def, _ = self._defaults[code]
+                gen_def, load_def = self._defaults[code]
                 typ_mw = sum(gen_def.values())
                 live_mw = sum(float(mw or 0) for mw in aligned["generation"].values())
+                live_load = float(aligned["load_mw"] or 0)
                 if typ_mw >= IMPLAUSIBLE_MIN_MW and live_mw < IMPLAUSIBLE_SHARE * typ_mw:
                     implausible = (f"unplausibel: {live_mw:.0f} MW Erzeugung statt "
                                    f"typisch {typ_mw:.0f} MW (ENTSO-E-Meldung unvollständig?)")
+                elif (load_def >= IMPLAUSIBLE_MIN_MW
+                      and live_load < LOAD_IMPLAUSIBLE_SHARE * load_def):
+                    implausible = (f"unplausibel: {live_load:.0f} MW Last statt "
+                                   f"typisch {load_def:.0f} MW (Teilzonen fehlen?)")
+                if implausible:
                     log.warning("%s verworfen – %s", code, implausible)
                     aligned = None
 

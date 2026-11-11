@@ -326,6 +326,33 @@ _atit = [f for f in _res["flows"] if {f["a"], f["b"]} == {"AT", "IT"}][0]
 check("AT–IT nicht mehr absurd überlastet (< 300 %)",
       _atit["util"] < 3.0, f"{_atit['util'] * 100:.0f} %")
 
+print("\n" + "=" * 66)
+print("  TEST  –  Unvollständige A65-Antwort (11.11.2026: IT nur 1 Teilzone)")
+print("=" * 66)
+# IT meldete 12,2 GW Last (eine von sechs Teilzonen) bei 36,4 GW Erzeugung:
+# +24 GW Phantom-Überschuss, der über das ganze Netz abfließt.
+L.STATE._zones.clear()
+L.STATE.update({
+    "IT": mkseries({"Fossil Gas": 20000, "Solar": 6000, "Wind Onshore": 5000,
+                    "Hydro Run-of-river and poundage": 5400}, 12185, 0, newest_ago=0),
+    # Schwach belastete, aber echte Zone (SE4 mittags) bleibt live
+    "SE4": mkseries({"Wind Onshore": 900, "Nuclear": 0.0}, 1153, 0, newest_ago=0),
+    # Nachtlast bei 55 % des Mittels ist echt, nicht unvollständig
+    "FR": mkseries({"Nuclear": 40000, "Hydro Run-of-river and poundage": 4000},
+                   0.55 * L.STATE._defaults["FR"][1], 0, newest_ago=0),
+})
+meta = L.STATE.apply_to_model()
+check("IT mit 12,2 GW Last (28 % typisch) → verworfen",
+      meta["IT"]["source"] == "default", meta["IT"]["source"])
+check("Grund nennt die Last",
+      "Last" in meta["IT"].get("reason", ""), meta["IT"].get("reason", ""))
+check("SE4 (unter 2 GW typisch) bleibt live",
+      meta["SE4"]["source"] == "live", meta["SE4"]["source"])
+check("FR mit Nachtlast 55 % bleibt live",
+      meta["FR"]["source"] == "live", meta["FR"]["source"])
+check("IT rechnet mit typischer Last, nicht mit 12,2 GW",
+      ZONES["IT"].base_load > 30000, f"{ZONES['IT'].base_load:.0f} MW")
+
 
 print("\n" + "=" * 66)
 if FAILS:
