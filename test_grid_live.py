@@ -355,6 +355,63 @@ check("IT rechnet mit typischer Last, nicht mit 12,2 GW",
 
 
 print("\n" + "=" * 66)
+print("  TEST  –  Bilanz gegen gemessene Grenzflüsse (18.11.2026: DE-Last zu niedrig)")
+print("=" * 66)
+# ENTSO-E meldete für DE 51,8 GW Last (Fraunhofer 65,2 GW) bei ~77 GW
+# Erzeugung → ~25 GW Export im Modell, gemessen waren es ~12 GW.
+# Last-Schwelle (40 %) greift nicht; die Grenzflüsse verraten es.
+from meridian_grid import INTERCONNECTORS
+
+
+def mess_fuer(zone, netto_mw, ohne=()):
+    """A11-Messung: alle Grenzen der Zone außer `ohne`, Summe = netto_mw Export."""
+    keys = [(ln.a, ln.b, ln.label or None) for ln in INTERCONNECTORS
+            if zone in (ln.a, ln.b) and {ln.a, ln.b} - {zone} not in
+            [{o} for o in ohne]]
+    per = netto_mw / len(keys)
+    return {k: (per if k[0] == zone else -per) for k in keys}
+
+
+de_gen = {"Wind Onshore": 42000, "Wind Offshore": 6600, "Solar": 6300,
+          "Fossil Hard Coal": 9400, "Fossil Gas": 6400, "Biomass": 4400,
+          "Hydro Run-of-river and poundage": 1200, "Other": 1000}
+fr_gen = {"Nuclear": 50000, "Hydro Run-of-river and poundage": 6000,
+          "Wind Onshore": 6000}                       # 62 GW
+L.STATE._zones.clear()
+L.STATE.update({
+    "DE": mkseries(de_gen, 51800, 0, newest_ago=0),
+    # Rekordexport FR 18 GW, von der Messung gedeckt → muss live bleiben
+    "FR": mkseries(fr_gen, 44000, 0, newest_ago=0),
+})
+_snap, _ = L.STATE.snapshot()
+_t = L.choose_target_ts(_snap)
+_meas = mess_fuer("DE", 12000, ohne=("DK1",))
+_meas.update(mess_fuer("FR", 18000, ohne=("ES", "DE")))  # FR–DE kommt aus der DE-Messung
+L.STATE.set_measured(_meas, _t)
+meta = L.STATE.apply_to_model()
+check("DE mit ~25 GW Modell-Export bei 12 GW gemessen → verworfen",
+      meta["DE"]["source"] == "default", meta["DE"].get("reason", ""))
+check("Grund nennt die Bilanz",
+      "Bilanz" in meta["DE"].get("reason", ""), meta["DE"].get("reason", ""))
+check("FR mit echtem 18-GW-Export (gemessen) bleibt live",
+      meta["FR"]["source"] == "live", meta["FR"].get("reason", ""))
+check("FR weist Bilanzabweichung aus",
+      "balance_diff_mw" in meta["FR"], str(meta["FR"]))
+
+# Ohne Messung (oder Messung zu anderem Zeitpunkt) keine Bilanzprüfung
+L.STATE.set_measured(_meas, _t - timedelta(hours=1))
+meta = L.STATE.apply_to_model()
+check("Messung zu anderem Zeitpunkt → DE bleibt live (keine Prüfung)",
+      meta["DE"]["source"] == "live", meta["DE"].get("reason", ""))
+# Alle Grenzen gemessen → Kalibrierung pinnt, Prüfung entfällt
+L.STATE.set_measured(mess_fuer("DE", 12000), _t)
+meta = L.STATE.apply_to_model()
+check("Alle DE-Grenzen gemessen → keine Verwerfung (Kalibrierung pinnt)",
+      meta["DE"]["source"] == "live", meta["DE"].get("reason", ""))
+L.STATE.set_measured({}, None)
+
+
+print("\n" + "=" * 66)
 if FAILS:
     print(f"  {len(FAILS)} TEST(S) FEHLGESCHLAGEN: {', '.join(FAILS)}")
     sys.exit(1)

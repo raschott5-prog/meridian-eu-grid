@@ -327,6 +327,51 @@ IMPLAUSIBLE_MIN_MW = 2000.0
 # schwankt viel weniger als Erzeugung (nachts selten unter ~60 % des Mittels),
 # darum eine höhere Schwelle.
 LOAD_IMPLAUSIBLE_SHARE = 0.40
+# BILANZ GEGEN GEMESSENE GRENZFLÜSSE (18.11.2026, 12:00 UTC): DE meldete
+# 51,8 GW Last (Fraunhofer: 65,2 GW) bei voller Erzeugung → rechnerisch
+# ~25 GW Export statt real ~13 GW, Überlasten DE→FR 147 %, DE→CZ 122 %.
+# Die Last-Schwelle oben greift dabei nicht (84 % des Defaults), und eine
+# feste Export-Quote träfe echte Rekordexporte (FR ~18 GW). Darum: Netto-
+# Position aus A75/A65 gegen die Summe der GEMESSENEN A11-Flüsse der Zone.
+# Unbemessene AC-Grenzen gehen mit ihrer vollen NTC als Unsicherheit ein,
+# unbemessene DC-Kabel mit ihrem Sollwert (wie in der Kalibrierung).
+# Nur für Zonen, die die Kalibrierung NICHT pinnen kann – gepinnte Zonen
+# bekommen ihre Bilanz ohnehin aus der Messung korrigiert.
+BALANCE_TOL_SHARE = 0.10
+BALANCE_TOL_MIN_MW = 3000.0
+
+
+def balance_mismatch(code: str, live_net: float, measured: dict,
+                     load_def: float) -> dict | None:
+    """
+    Vergleicht die Netto-Position (Erzeugung − Last − Pumpen) einer Zone mit
+    den gemessenen Grenzflüssen. Liefert {diff_mw, tol_mw, meas_net_mw} oder
+    None, wenn nicht prüfbar (keine Messung) bzw. nicht nötig (alle Grenzen
+    gemessen → Kalibrierung pinnt die Zone).
+    """
+    meas_net = 0.0
+    unknown = 0.0
+    n_meas = 0
+    n_borders = 0
+    for ln in INTERCONNECTORS:
+        if code not in (ln.a, ln.b):
+            continue
+        n_borders += 1
+        key = (ln.a, ln.b, ln.label or None)
+        if key in measured:
+            flow = measured[key]
+            n_meas += 1
+        elif ln.kind == "DC":
+            flow = ln.setpoint
+        else:
+            unknown += ln.ntc
+            continue
+        meas_net += flow if ln.a == code else -flow
+    if n_borders == 0 or n_meas == 0 or unknown == 0:
+        return None
+    tol = unknown + max(BALANCE_TOL_MIN_MW, BALANCE_TOL_SHARE * load_def)
+    return {"diff_mw": live_net - meas_net, "tol_mw": tol,
+            "meas_net_mw": meas_net}
 
 
 def _typical_mw(gen_series: dict) -> tuple[dict, float]:
@@ -1014,6 +1059,14 @@ class LiveGridState:
         self._last_refresh: datetime | None = None
         self._target_ts: datetime | None = None
         self._defaults = {c: (dict(z.gen), z.base_load) for c, z in ZONES.items()}
+        self._measured: dict = {}               # A11 am Zielzeitpunkt (Bilanzprüfung)
+        self._measured_ts: datetime | None = None
+
+    def set_measured(self, measured: dict, target):
+        """Gemessene Grenzflüsse für die Bilanzprüfung in apply_to_model()."""
+        with self._lock:
+            self._measured = dict(measured or {})
+            self._measured_ts = target
 
     def update(self, fetched: dict):
         with self._lock:
@@ -1040,9 +1093,14 @@ class LiveGridState:
         with self._lock:
             self._target_ts = target
 
+        with self._lock:
+            measured = (self._measured
+                        if target and self._measured_ts == target else {})
+
         zones_meta = {}
         for code, z in ZONES.items():
             zd = live.get(code)
+            balance = None
             aligned = align_zone(zd, target) if (zd and zd.get("ok") and target) else None
 
             implausible = None
@@ -1058,6 +1116,16 @@ class LiveGridState:
                       and live_load < LOAD_IMPLAUSIBLE_SHARE * load_def):
                     implausible = (f"unplausibel: {live_load:.0f} MW Last statt "
                                    f"typisch {load_def:.0f} MW (Teilzonen fehlen?)")
+                elif measured:
+                    pump = float(aligned["pump_mw"] or 0)
+                    balance = balance_mismatch(code, live_mw - live_load - pump,
+                                               measured, load_def)
+                    if balance and abs(balance["diff_mw"]) > balance["tol_mw"]:
+                        implausible = (
+                            f"unplausibel: Bilanz {(live_mw - live_load - pump) / 1000:+.1f} GW, "
+                            f"gemessene Grenzflüsse {balance['meas_net_mw'] / 1000:+.1f} GW "
+                            f"(Abweichung {balance['diff_mw'] / 1000:+.1f} GW > "
+                            f"{balance['tol_mw'] / 1000:.1f} GW)")
                 if implausible:
                     log.warning("%s verworfen – %s", code, implausible)
                     aligned = None
@@ -1080,6 +1148,9 @@ class LiveGridState:
                     "pump_mw": round(aligned["pump_mw"]),
                     "load_subzones": aligned["load_subzones"],
                 }
+                if balance:
+                    zones_meta[code]["balance_diff_mw"] = round(balance["diff_mw"])
+                    zones_meta[code]["balance_tol_mw"] = round(balance["tol_mw"])
             else:
                 gen_def, load_def = self._defaults[code]
                 z.gen = dict(gen_def)
@@ -1279,6 +1350,13 @@ def refresh_now(codes=None, with_flows: bool = True) -> dict:
         if carried:
             log.info("A11: %d borders without fresh data — using history "
                      "from carry-forward", carried)
+
+    # Gemessene Flüsse VOR apply_to_model bereitstellen – die Bilanzprüfung
+    # braucht sie, um Zonen mit unmöglicher Netto-Position zu verwerfen.
+    snap, _ = STATE.snapshot()
+    tgt0 = choose_target_ts(snap) if snap else None
+    STATE.set_measured(measured_at(_FLOW_SERIES, tgt0)
+                       if (tgt0 and _FLOW_SERIES) else {}, tgt0)
 
     # Calibrate — only after apply_to_model so the grid snapshot is current.
     # Hold _GRID_LOCK: apply_to_model mutates global ZONES; concurrent solve()
